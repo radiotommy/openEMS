@@ -156,6 +156,8 @@ protected:
 
 #ifdef MPI_SUPPORT
 	enum EngineType {EngineType_Basic, EngineType_SSE, EngineType_SSE_Compressed, EngineType_Multithreaded, EngineType_MPI};
+#elif WITH_CUDA 
+	enum EngineType {EngineType_Basic, EngineType_SSE, EngineType_SSE_Compressed, EngineType_Multithreaded, EngineType_CUDA};
 #else
 	enum EngineType {EngineType_Basic, EngineType_SSE, EngineType_SSE_Compressed, EngineType_Multithreaded};
 #endif

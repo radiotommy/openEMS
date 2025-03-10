@@ -7,7 +7,7 @@ ELSE()
 ENDIF()
 
 PROJECT(openEMS CXX C)
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.18)
 
 # default
 set(LIB_VERSION_MAJOR 0)
@@ -22,6 +22,10 @@ IF(EXISTS ${PROJECT_SOURCE_DIR}/localConfig.cmake)
 ENDIF()
 
 #ADD_DEFINITIONS( -D__SSE2__ )
+
+
+set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -g" )
+set (CMAKE_SHARED_LINKER_FLAGS_DEBUG "${CMAKE_SHARED_LINKER_FLAGS} -g" )
 
 set(VERSION "v0.0.36")
 
@@ -70,39 +74,47 @@ if (WITH_MPI)
 	message(STATUS "Found MPI. INCLUDE " ${MPI_INCLUDE_PATH})
 endif()
 
+if (WITH_CUDA)
+  enable_language(CUDA)
+  ADD_DEFINITIONS(-DWITH_CUDA)
+  find_library(CUDART_LIBRARY cudart ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+  INCLUDE_DIRECTORIES(${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+  INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/hemi)
+endif()
+
 # Set locations of extra CMake modules
 SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${openEMS_SOURCE_DIR}/cmake/Modules/")
 
 # fparser
 # $ cmake -D FPARSER_ROOT_DIR=~/opt/openEMS .
 # SET(FPARSER_ROOT_DIR ~/opt/openEMS)
-find_library(fparser_LIBRARIES 
+find_library(fparser_LIBRARIES
   NAMES fparser
   HINTS ${FPARSER_ROOT_DIR}/lib${LIB_SUFFIX}
   NO_CMAKE_FIND_ROOT_PATH
 )
 message(STATUS "fparser: ${fparser_LIBRARIES}" )
 #TODO test if fparser was found
-INCLUDE_DIRECTORIES( ${FPARSER_ROOT_DIR}/include ) 
+INCLUDE_DIRECTORIES( ${FPARSER_ROOT_DIR}/include )
 
 # CSXCAD
 # $ cmake -D CSXCAD_ROOT_DIR=~/opt/openEMS .
 # SET(CSXCAD_ROOT_DIR ~/opt/openEMS)
-find_library(CSXCAD_LIBRARIES 
+find_library(CSXCAD_LIBRARIES
   NAMES CSXCAD
   HINTS ${CSXCAD_ROOT_DIR}/lib${LIB_SUFFIX}
   NO_CMAKE_FIND_ROOT_PATH
 )
 message(STATUS "CSXCAD_LIBRARIES: ${CSXCAD_LIBRARIES}" )
 #TODO test if CSXCADs was found
-find_path(CSXCAD_INCLUDE_DIR 
-    NAMES ContinuousStructure.h 
+find_path(CSXCAD_INCLUDE_DIR
+    NAMES ContinuousStructure.h
     HINTS ${CSXCAD_ROOT_DIR}/include
     PATH_SUFFIXES "CSXCAD" ${CSXCAD_INCLUDE_DIR}
     NO_CMAKE_FIND_ROOT_PATH
 )
 message(STATUS "CSXCAD_INCLUDE_DIR: ${CSXCAD_INCLUDE_DIR}" )
-INCLUDE_DIRECTORIES( ${CSXCAD_INCLUDE_DIR} ) 
+INCLUDE_DIRECTORIES( ${CSXCAD_INCLUDE_DIR} )
 
 # TinyXML module from https://github.com/ros/cmake_modules
 find_package(TinyXML REQUIRED)
@@ -176,6 +188,12 @@ endif()
 add_library( openEMS SHARED ${SOURCES})
 #ADD_EXECUTABLE( openEMS main.cpp ${SOURCES})
 set_target_properties(openEMS PROPERTIES VERSION ${LIB_VERSION_STRING} SOVERSION ${LIB_VERSION_MAJOR} )
+
+if (WITH_CUDA)
+  set_target_properties(openEMS PROPERTIES CUDA_ARCHITECTURES "native")
+  INCLUDE_DIRECTORIES(${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
+endif()
+
 TARGET_LINK_LIBRARIES( openEMS
   ${CSXCAD_LIBRARIES}
   ${fparser_LIBRARIES}
@@ -196,7 +214,11 @@ endif (WIN32)
 ADD_EXECUTABLE( openEMS_bin main.cpp )
 SET_TARGET_PROPERTIES(openEMS_bin PROPERTIES OUTPUT_NAME openEMS)
 TARGET_LINK_LIBRARIES(openEMS_bin openEMS)
- 
+
+if (WITH_CUDA)
+  SET_TARGET_PROPERTIES(openEMS_bin PROPERTIES CUDA_ARCHITECTURES "native")
+endif()
+
 if (WIN32)
     INSTALL(TARGETS openEMS DESTINATION bin)
 else()
@@ -205,8 +227,8 @@ endif()
 INSTALL(TARGETS openEMS_bin DESTINATION bin)
 
 if (UNIX)
-    INSTALL( FILES openEMS.sh 
-         DESTINATION bin 
+    INSTALL( FILES openEMS.sh
+         DESTINATION bin
          PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE)
 	if (WITH_MPI)
 	INSTALL( FILES openEMS_MPI.sh

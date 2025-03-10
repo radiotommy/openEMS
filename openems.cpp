@@ -26,6 +26,7 @@
 #include "FDTD/operator_cylindermultigrid.h"
 #include "FDTD/engine_multithread.h"
 #include "FDTD/operator_multithread.h"
+#include "FDTD/operator_cuda.h"
 #include "FDTD/extensions/operator_ext_excitation.h"
 #include "FDTD/extensions/operator_ext_tfsf.h"
 #include "FDTD/extensions/operator_ext_mur_abc.h"
@@ -37,6 +38,7 @@
 #include "FDTD/extensions/engine_ext_steadystate.h"
 #include "FDTD/engine_interface_fdtd.h"
 #include "FDTD/engine_interface_cylindrical_fdtd.h"
+#include "FDTD/engine_interface_cuda_fdtd.h"
 #include "Common/processvoltage.h"
 #include "Common/processcurrent.h"
 #include "Common/processfieldprobe.h"
@@ -252,6 +254,14 @@ openEMS::optionDesc()
 						cout << "openEMS - enabled multithreading" << endl;
 						m_engine = EngineType_Multithreaded;
 					}
+#if WITH_CUDA
+					else if (val == "cuda") 
+					{
+						cout << "openEMS - enabled CUDA" << endl;
+						m_engine = EngineType_CUDA;
+
+					}
+#endif
 				}
 			),
 		    "Choose engine type \n\n"
@@ -261,6 +271,7 @@ openEMS::optionDesc()
 			"  sse-compressed: \tengine using compressed "
 			"operator + sse vector extensions\n"
 			"  multithreaded: \tengine using compressed "
+			"  cuda: \tengine using cuda"
 #ifdef MPI_SUPPORT
 			"operator + sse vector extensions + MPI + multithreading\n"
 #else
@@ -432,9 +443,15 @@ Engine_Interface_FDTD* openEMS::NewEngineInterface(int multigridlevel)
 	Operator_Cylinder* op_cyl = dynamic_cast<Operator_Cylinder*>(FDTD_Op);
 	if (op_cyl)
 		return new Engine_Interface_Cylindrical_FDTD(op_cyl);
+
 	Operator_sse* op_sse = dynamic_cast<Operator_sse*>(FDTD_Op);
 	if (op_sse)
 		return new Engine_Interface_SSE_FDTD(op_sse);
+
+	Operator_CUDA *op_cuda = dynamic_cast<Operator_CUDA *>(FDTD_Op);
+	if (op_cuda)
+		return new Engine_Interface_CUDA_FDTD(op_cuda);
+
 	return new Engine_Interface_FDTD(FDTD_Op);
 }
 
@@ -710,6 +727,12 @@ bool openEMS::SetupOperator()
 	{
 		FDTD_Op = Operator_Multithread::New(m_engine_numThreads);
 	}
+#if WITH_CUDA
+	else if (m_engine == EngineType_CUDA)
+	{
+		FDTD_Op = Operator_CUDA::New(0);
+	}
+#endif
 	else
 	{
 		FDTD_Op = Operator::New();
@@ -1240,6 +1263,7 @@ bool openEMS::CheckAbortCond()
 	return false;
 }
 
+
 void openEMS::RunFDTD()
 {
 	cout << "Running FDTD engine... this may take a while... grab a cup of coffee?!?" << endl;
@@ -1279,6 +1303,7 @@ void openEMS::RunFDTD()
 	PA->PreProcess();
 	int step=PA->Process();
 	if ((step<0) || (step>(int)NrTS)) step=NrTS;
+
 	while ((FDTD_Eng->GetNumberOfTimesteps()<NrTS) && (change>endCrit) && !CheckAbortCond())
 	{
 		FDTD_Eng->IterateTS(step);
