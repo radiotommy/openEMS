@@ -104,7 +104,6 @@ void addInKernel(FDTD_FLOAT *p, int cell, int n, FDTD_FLOAT val)
     p[cell * 3 + n] += val;
 }
 
-
 __device__ void wrapReduce(volatile double *vv, volatile double *ii, int tid)
 {
     vv[tid] += vv[(tid + 32)];
@@ -126,36 +125,43 @@ __global__ void calcFastEnergyKernel(FDTD_FLOAT *volt, FDTD_FLOAT *curr, double 
     __shared__ double vv[THREADS]; // shared memory for energy calculation, between threads in a block
     __shared__ double ii[THREADS]; // shared memory for energy calculation, between threads in a block
 
-    vv[threadIdx.x] = volt[threadIdx.x] * volt[threadIdx.x];
-    ii[threadIdx.x] = curr[threadIdx.x] * curr[threadIdx.x];
-    __syncthreads();
+    double local_vv = 0.0;
+    double local_ii = 0.0;
+    int tid = threadIdx.x;
 
-    int total = dim[0]*dim[1]*dim[2] * 3;
-    int total_rows = total + (THREADS - 1) / THREADS;
+    // Process all cells in strides
+    int total = dim[0] * dim[1] * dim[2];
+    for (int cell = tid; cell < total; cell += THREADS) {
+        int x = cell / (dim[1] * dim[2]);
+        int y = (cell / dim[2]) % dim[1];
+        int z = cell % dim[2];
+        if (x < dim[0] - 1 && y < dim[1] - 1 && z < dim[2] - 1) {
+            int offs = cell * 3;
+            FDTD_FLOAT *v = volt + offs;
+            FDTD_FLOAT *i = curr + offs;
 
-    for (int row = 0; row < total_rows; row++) {
-        int offs = row * THREADS + threadIdx.x;
-        if (offs < total) {
-            vv[threadIdx.x] += volt[offs] * volt[offs];
-            ii[threadIdx.x] += curr[offs] * curr[offs];
+            local_vv += v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
+            local_ii += i[0] * i[0] + i[1] * i[1] + i[2] * i[2];
         }
     }
+    vv[tid] = local_vv;
+    ii[tid] = local_ii;
     __syncthreads();
 
-
+    // Reduction
     for (int s = THREADS / 2; s > 32; s >>= 1) {
-        if (threadIdx.x < s) {
-            vv[threadIdx.x] += vv[threadIdx.x + s];
-            ii[threadIdx.x] += ii[threadIdx.x + s];
+        if (tid < s) {
+            vv[tid] += vv[tid + s];
+            ii[tid] += ii[tid + s];
         }
         __syncthreads();
     }
-    if (threadIdx.x < 32) {
-        wrapReduce(vv, ii, threadIdx.x);
+    if (tid < 32) {
+        wrapReduce(vv, ii, tid);
     }
     __syncthreads();
 
-    if (threadIdx.x == 0) {
+    if (tid == 0) {
         p_sum[0] = vv[0] * __EPS0__ + ii[0] * __MUE0__;
     }
 }
