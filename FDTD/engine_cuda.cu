@@ -55,10 +55,6 @@ void updateVoltagesKernel(FDTD_FLOAT *volt, const FDTD_FLOAT *curr,
         v[1] = v[1] * vv[1] + vi[1] * (i[0] - iz[0] - i[2] + ix[2]);
         // update z
         v[2] = v[2] * vv[2] + vi[2] * (i[1] -ix[1] - i[0] + iy[0]); 
-
-        //if (cell == 171199) {
-        //    printf("%d: %f %f %f\n", blockIdx.x, v[0], v[1], v[2]);
-        //}
     }
 }
 
@@ -172,7 +168,6 @@ Engine_cuda* Engine_cuda::New(const Operator_CUDA* op, unsigned int cuda_device_
     Engine_cuda* e = new Engine_cuda(op);
     e->setCUDAdevice(cuda_device_number);
     e->Init();
-    fprintf(stderr, "engen cuda at %p\n", e);
     return e;
 }
 
@@ -205,7 +200,7 @@ void Engine_cuda::Init() {
         throw std::runtime_error("NO CUDA device found");
     }
     if (m_cuda_device_number >= nDevices) {
-        fprintf(stderr, "cuda_device: %d/%d\n", m_cuda_device_number, nDevices);
+        cout << "cuda device out of range " << m_cuda_device_number << " / " << nDevices << endl;
         throw std::runtime_error("CUDA device number out of range");
     }
 
@@ -265,9 +260,6 @@ void Engine_cuda::UpdateVoltages(unsigned int startX, unsigned int numX) {
     // Copy current data to GPU
     int N = numX * numLines[1] * numLines[2];
 
-    volt_ptr->load();
-    curr_ptr->load();
-
     // Launch kernel
     int blocks = (N  + THREADS - 1) / THREADS;
     updateVoltagesKernel<<< blocks, THREADS >>>(volt_ptr->device_data(), (const FDTD_FLOAT*)curr_ptr->device_data(), 
@@ -275,14 +267,10 @@ void Engine_cuda::UpdateVoltages(unsigned int startX, unsigned int numX) {
 
     checkCudaErrors();
     checkCuda(cudaDeviceSynchronize());
-
-    volt_ptr->unload();
 }
 
 void Engine_cuda::UpdateCurrents(unsigned int startX, unsigned int numX) {
     // Copy voltage data to GPU
-    volt_ptr->load();
-    curr_ptr->load();
 
     int N = numX * numLines[1] * numLines[2];
 
@@ -292,8 +280,6 @@ void Engine_cuda::UpdateCurrents(unsigned int startX, unsigned int numX) {
             Op->ii_ptr->device_data(), Op->iv_ptr->device_data(), d_dim, N);
     checkCudaErrors();
     checkCuda(cudaDeviceSynchronize());
-
-    curr_ptr->unload();
 }
 
 void Engine_cuda::AddVolt(unsigned int n, const unsigned int pos[3], FDTD_FLOAT value)
@@ -303,9 +289,6 @@ void Engine_cuda::AddVolt(unsigned int n, const unsigned int pos[3], FDTD_FLOAT 
 
     checkCudaErrors();
     checkCuda(cudaDeviceSynchronize());
-
-	ArrayLib::ArrayNIJK<FDTD_FLOAT>& volt = *volt_ptr;
-    volt[n][pos[0]][pos[1]][pos[2]] += value;
 }
 
 void Engine_cuda::AddCurr(unsigned int n, const unsigned int pos[3], FDTD_FLOAT value)
@@ -315,14 +298,14 @@ void Engine_cuda::AddCurr(unsigned int n, const unsigned int pos[3], FDTD_FLOAT 
 
     checkCudaErrors();
     checkCuda(cudaDeviceSynchronize());
-
-	ArrayLib::ArrayNIJK<FDTD_FLOAT>& curr = *curr_ptr;
-    curr[n][pos[0]][pos[1]][pos[2]] += value;
 }
 
 
 double Engine_cuda::CalcFastEnergy()
 {
+    if (m_volt_updated || m_curr_updated) {
+        printf("volt & curr updated: %d,%d\n", m_volt_updated, m_curr_updated);
+    }
     calcFastEnergyKernel<<<1, THREADS>>>(volt_ptr->device_data(), curr_ptr->device_data(), d_energy_sum, d_dim);
 
     checkCudaErrors();
@@ -330,6 +313,7 @@ double Engine_cuda::CalcFastEnergy()
 
     double energy_sum;
     checkCuda(cudaMemcpy(&energy_sum, d_energy_sum, sizeof(energy_sum), cudaMemcpyDeviceToHost));
+
     return energy_sum;
 }
 
@@ -344,6 +328,13 @@ bool Engine_cuda::IterateTS(unsigned int iterTS) {
     m_volt_updated_by_host = 1;
     m_curr_updated_by_host = 1;
 
+    if (m_volt_updated) {
+        volt_ptr->load();
+    }
+    if (m_curr_updated) {
+        curr_ptr->load();
+    }
+    m_host_data_locked = true;
     for (unsigned int iter = 0; iter < iterTS; ++iter) {
         DoPreVoltageUpdates();
         UpdateVoltages(0, numLines[0]);
@@ -358,5 +349,33 @@ bool Engine_cuda::IterateTS(unsigned int iterTS) {
 
         ++numTS;
     }
+    volt_ptr->unload();
+    curr_ptr->unload();
+    m_host_data_locked = false;
+    m_volt_updated = 0;
+    m_curr_updated = 0;
     return true;
+}
+
+
+void Engine_cuda::UnloadVoltData(unsigned int *start, unsigned int *lines)
+{
+    for (unsigned int x = 0; x < lines[0]; ++x) {
+        for (unsigned int y = 0; y < lines[1]; ++y) {
+            int i = getLinearIndex(0, *start + x, start[1] + y, start[2]);
+            FDTD_FLOAT *p = volt_ptr->device_data() + i;
+            checkCuda(cudaMemcpy(p, volt_ptr->data(), sizeof(FDTD_FLOAT) * 3 * lines[2], cudaMemcpyHostToDevice));
+        }
+    }
+}
+
+void Engine_cuda::UnloadCurrData(unsigned int *start, unsigned int *lines)
+{
+    for (unsigned int x = 0; x < lines[0]; ++x) {
+        for (unsigned int y = 0; y < lines[1]; ++y) {
+            int i = getLinearIndex(0, *start + x, start[1] + y, start[2]);
+            FDTD_FLOAT *p = curr_ptr->device_data() + i;
+            checkCuda(cudaMemcpy(p, curr_ptr->data(), sizeof(FDTD_FLOAT) * 3 * lines[2], cudaMemcpyHostToDevice));
+        }
+    }
 }

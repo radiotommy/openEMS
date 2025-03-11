@@ -74,6 +74,8 @@ void Engine_Ext_Excitation::Apply2VoltagesImpl(EngType* eng)
 		pos[1]=m_Op_Exc->Volt_index[1][n];
 		pos[2]=m_Op_Exc->Volt_index[2][n];
 
+		FDTD_FLOAT v = m_Op_Exc->Volt_amp[n]*exc_volt[exc_pos];
+
 		eng->EngType::SetVolt(ny,pos, eng->EngType::GetVolt(ny,pos) + m_Op_Exc->Volt_amp[n]*exc_volt[exc_pos]);
 	}
 }
@@ -116,6 +118,7 @@ void Engine_Ext_Excitation::Apply2CurrentImpl(EngType* eng)
 		pos[1]=m_Op_Exc->Curr_index[1][n];
 		pos[2]=m_Op_Exc->Curr_index[2][n];
 		eng->EngType::SetCurr(ny,pos, eng->EngType::GetCurr(ny,pos) + m_Op_Exc->Curr_amp[n]*exc_curr[exc_pos]);
+
 	}
 }
 

@@ -29,7 +29,6 @@ void kernelApply2VA(volatile FDTD_FLOAT *d_va, const exitation_point *ep, const 
     volatile FDTD_FLOAT* va = d_va + (3 * pos);
 
     va[ny] = va[ny] + ep->amp * sig_va[exc_pos];
-    //printf("update %d,%d, %f\n", pos, ny, va[ny]);
 }
 
 
@@ -59,7 +58,7 @@ void Engine_Ext_Excitation::Apply2VoltagesCuda(Engine_cuda *eng)
     );
     checkCuda(cudaDeviceSynchronize());
     checkCudaErrors();
-
+#if 0
     unsigned int pos[3];
     for (int n = 0; n < N; n++) {
 		pos[0]=m_Op_Exc->Volt_index[0][n];
@@ -67,6 +66,7 @@ void Engine_Ext_Excitation::Apply2VoltagesCuda(Engine_cuda *eng)
 		pos[2]=m_Op_Exc->Volt_index[2][n];
         eng->UnloadVoltData(m_Op_Exc->Volt_dir[n], pos);
     }
+#endif
 }
 
 
@@ -75,7 +75,6 @@ void Engine_Ext_Excitation::Apply2CurrentCuda(Engine_cuda *eng)
     int N = m_Op_Exc->Curr_Count;
     if (N <= 0 || this->d_ep_a == NULL)     return;
 
-    printf("Applying currents to CUDA engine...\n");
     int numTS = eng->GetNumberOfTimesteps();
     int p = numTS + 1;
     if (m_Op_Exc->m_Exc->GetSignalPeriod() > 0) {
@@ -97,7 +96,7 @@ void Engine_Ext_Excitation::Apply2CurrentCuda(Engine_cuda *eng)
 
     checkCuda(cudaDeviceSynchronize());
     checkCudaErrors();
-
+#if 0
     unsigned int pos[3];
     for (int n = 0; n < N; n++) {
 		pos[0]=m_Op_Exc->Volt_index[0][n];
@@ -105,6 +104,7 @@ void Engine_Ext_Excitation::Apply2CurrentCuda(Engine_cuda *eng)
 		pos[2]=m_Op_Exc->Volt_index[2][n];
         eng->UnloadCurrData(m_Op_Exc->Volt_dir[n], pos);
     }
+#endif
 }
 
 

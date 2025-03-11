@@ -1324,8 +1324,8 @@ void openEMS::RunFDTD()
 
 		t_diff = CalcDiffTime(currTime,prevTime);
 
-		if ((currTS % 1000) == 0)
 		//if (t_diff>4)
+		if ((currTS % 1000) == 0)
 		{
 			t_run = CalcDiffTime(currTime,startTime);
 			speed = numCells*(currTS-prevTS)/t_diff;

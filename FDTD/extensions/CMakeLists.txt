@@ -5,6 +5,7 @@
 if (WITH_CUDA)
   set(CUDA_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/engine_ext_excitation.cu
+    ${CMAKE_CURRENT_SOURCE_DIR}/engine_ext_upml.cu
   )
 endif()
 
