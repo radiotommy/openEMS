@@ -75,7 +75,6 @@ void Engine_Ext_Excitation::Apply2VoltagesImpl(EngType* eng)
 		pos[2]=m_Op_Exc->Volt_index[2][n];
 
 		eng->EngType::SetVolt(ny,pos, eng->EngType::GetVolt(ny,pos) + m_Op_Exc->Volt_amp[n]*exc_volt[exc_pos]);
-    	printf("update %d,%d,%d, %f\n", pos[0],pos[1], pos[2], eng->EngType::GetVolt(ny, pos));
 	}
 }
 
