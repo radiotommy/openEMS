@@ -2,8 +2,16 @@
 #INCLUDE_DIRECTORIES( ${openEMS_SOURCE_DIR} )
 #INCLUDE_DIRECTORIES( ${CSXCAD_SOURCE_DIR}/src )
 
+if (WITH_CUDA)
+  set(CUDA_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/engine_ext_excitation.cu
+  )
+endif()
+
+
 set(SOURCES
   ${SOURCES}
+  ${CUDA_SOURCES}
   ${CMAKE_CURRENT_SOURCE_DIR}/engine_extension.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/operator_ext_dispersive.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/operator_ext_lorentzmaterial.cpp

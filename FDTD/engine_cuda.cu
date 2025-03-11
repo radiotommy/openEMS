@@ -219,8 +219,6 @@ void Engine_cuda::Init() {
     cudaSetDevice(m_cuda_device_number);
     cudaDeviceGetAttribute(&m_supports_coop_launch, cudaDevAttrCooperativeLaunch, m_cuda_device_number);
 
-    int blocks = (numLines[0] * numLines[1] * numLines[2] + (THREADS - 1)) / THREADS;
-
 	numTS = 0;
 	volt_ptr = new ArrayLib::ArrayNIJK<FDTD_FLOAT>("volt", numLines);
 	curr_ptr = new ArrayLib::ArrayNIJK<FDTD_FLOAT>("curr", numLines);

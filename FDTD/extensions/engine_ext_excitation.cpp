@@ -27,7 +27,25 @@ Engine_Ext_Excitation::Engine_Ext_Excitation(Operator_Ext_Excitation* op_ext) : 
 
 Engine_Ext_Excitation::~Engine_Ext_Excitation()
 {
+#if WITH_CUDA
+	if (d_signal_v != NULL) {
+		cudaFree(d_signal_v);
+		d_signal_v = NULL;
+	}
+	if (d_ep_v != NULL) {
+		cudaFree(d_ep_v);
+		d_ep_v = NULL;
+	}
+	if (d_signal_a != NULL) {
+		cudaFree(d_signal_a);
+		d_signal_a = NULL;
+	}
+	if (d_ep_a != NULL) {
+		cudaFree(d_ep_a);
+		d_ep_a = NULL;	
+	}
 
+#endif
 }
 
 template <typename EngType>
@@ -55,13 +73,22 @@ void Engine_Ext_Excitation::Apply2VoltagesImpl(EngType* eng)
 		pos[0]=m_Op_Exc->Volt_index[0][n];
 		pos[1]=m_Op_Exc->Volt_index[1][n];
 		pos[2]=m_Op_Exc->Volt_index[2][n];
+
 		eng->EngType::SetVolt(ny,pos, eng->EngType::GetVolt(ny,pos) + m_Op_Exc->Volt_amp[n]*exc_volt[exc_pos]);
+    	printf("update %d,%d,%d, %f\n", pos[0],pos[1], pos[2], eng->EngType::GetVolt(ny, pos));
 	}
 }
 
 void Engine_Ext_Excitation::Apply2Voltages()
 {
-	ENG_DISPATCH(Apply2VoltagesImpl);
+#if 1
+	if (m_Eng->GetType() == Engine::CUDA) {
+		Apply2VoltagesCuda(dynamic_cast<Engine_cuda *>(m_Eng));
+	} else
+#endif
+	{
+		ENG_DISPATCH(Apply2VoltagesImpl);
+	}
 }
 
 template <typename EngType>
@@ -95,5 +122,12 @@ void Engine_Ext_Excitation::Apply2CurrentImpl(EngType* eng)
 
 void Engine_Ext_Excitation::Apply2Current()
 {
-	ENG_DISPATCH(Apply2CurrentImpl);
+#if 1
+	if (m_Eng->GetType() == Engine::CUDA) {
+		Apply2CurrentCuda(dynamic_cast<Engine_cuda *>(m_Eng));
+	}  else
+#endif
+	{
+		ENG_DISPATCH(Apply2CurrentImpl);
+	}
 }

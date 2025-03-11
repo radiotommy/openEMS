@@ -74,6 +74,10 @@ public:
 
 	virtual std::string GetExtensionName() const;
 
+#if WITH_CUDA
+	virtual void Prepare() {}
+#endif
+
 protected:
 	Engine_Extension(Operator_Extension* op_ext);
 

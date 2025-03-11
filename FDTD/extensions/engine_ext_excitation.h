@@ -25,6 +25,17 @@
 
 class Operator_Ext_Excitation;
 
+struct exitation_point {
+		int x;
+		int y;
+		int z;
+		int dir;            // 0: x, 1: y, 2: z
+		int delay;
+		int length;
+		FDTD_FLOAT amp;
+};
+
+
 class Engine_Ext_Excitation : public Engine_Extension
 {
 public:
@@ -34,12 +45,26 @@ public:
 	virtual void Apply2Voltages();
 	virtual void Apply2Current();
 
+#if WITH_CUDA
+	void SetEngine(Engine* eng);
+#endif
+
 protected:
 	template <typename EngType>
 	void Apply2VoltagesImpl(EngType* eng);
 
 	template <typename EngType>
 	void Apply2CurrentImpl(EngType* eng);
+
+#if WITH_CUDA
+	void Apply2VoltagesCuda(Engine_cuda* eng);
+	void Apply2CurrentCuda(Engine_cuda* eng);
+	FDTD_FLOAT* d_signal_v;
+	exitation_point *d_ep_v;
+
+	FDTD_FLOAT* d_signal_a;
+	exitation_point *d_ep_a;
+#endif
 
 	Operator_Ext_Excitation* m_Op_Exc;
 };
