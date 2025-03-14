@@ -36,31 +36,5 @@ Engine_Interface_CUDA_FDTD::~Engine_Interface_CUDA_FDTD()
 
 double Engine_Interface_CUDA_FDTD::CalcFastEnergy() const
 {
-#if 1
-	double E_energy=0.0;
-	double H_energy=0.0;
-
-	unsigned int pos[3];
-	for (pos[0]=0; pos[0]<m_Op->GetNumberOfLines(0)-1; ++pos[0])
-	{
-		for (pos[1]=0; pos[1]<m_Op->GetNumberOfLines(1)-1; ++pos[1])
-		{
-			for (pos[2]=0; pos[2]<m_Op->GetNumberOfLines(2)-1; ++pos[2])
-			{
-				E_energy+=m_Eng->Engine::GetVolt(0,pos[0],pos[1],pos[2]) * m_Eng->Engine::GetVolt(0,pos[0],pos[1],pos[2]);
-				E_energy+=m_Eng->Engine::GetVolt(1,pos[0],pos[1],pos[2]) * m_Eng->Engine::GetVolt(1,pos[0],pos[1],pos[2]);
-				E_energy+=m_Eng->Engine::GetVolt(2,pos[0],pos[1],pos[2]) * m_Eng->Engine::GetVolt(2,pos[0],pos[1],pos[2]);
-
-				H_energy+=m_Eng->Engine::GetCurr(0,pos[0],pos[1],pos[2]) * m_Eng->Engine::GetCurr(0,pos[0],pos[1],pos[2]);
-				H_energy+=m_Eng->Engine::GetCurr(1,pos[0],pos[1],pos[2]) * m_Eng->Engine::GetCurr(1,pos[0],pos[1],pos[2]);
-				H_energy+=m_Eng->Engine::GetCurr(2,pos[0],pos[1],pos[2]) * m_Eng->Engine::GetCurr(2,pos[0],pos[1],pos[2]);
-			}
-		}
-	}
-	return __EPS0__*E_energy + __MUE0__*H_energy;
-#else
 	return m_Eng_CUDA->CalcFastEnergy();
-#endif
-
-
 }
