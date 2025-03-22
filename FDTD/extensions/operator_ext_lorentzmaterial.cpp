@@ -437,7 +437,7 @@ bool Operator_Ext_LorentzMaterial::BuildExtension()
 	return true;
 }
 
-Engine_Extension* Operator_Ext_LorentzMaterial::CreateEngineExtention()
+Engine_Extension* Operator_Ext_LorentzMaterial::CreateEngineExtention(Engine *engine)
 {
 	Engine_Ext_LorentzMaterial* eng_ext_lor = new Engine_Ext_LorentzMaterial(this);
 	return eng_ext_lor;

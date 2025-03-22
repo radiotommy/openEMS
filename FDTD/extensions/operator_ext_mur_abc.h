@@ -49,7 +49,7 @@ public:
 
 	virtual bool BuildExtension();
 
-	virtual Engine_Extension* CreateEngineExtention();
+	virtual Engine_Extension* CreateEngineExtention(Engine *engine);
 
 	virtual bool IsCylinderCoordsSave(bool closedAlpha, bool R0_included) const;
 	virtual bool IsCylindricalMultiGridSave(bool child) const;

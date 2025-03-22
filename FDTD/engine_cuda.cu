@@ -335,6 +335,7 @@ bool Engine_cuda::IterateTS(unsigned int iterTS) {
         curr_ptr->load();
     }
     m_host_data_locked = true;
+
     for (unsigned int iter = 0; iter < iterTS; ++iter) {
         DoPreVoltageUpdates();
         UpdateVoltages(0, numLines[0]);

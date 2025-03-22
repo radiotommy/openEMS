@@ -61,7 +61,7 @@ void Engine::InitExtensions()
 	for (size_t n=0; n<Op->GetNumberOfExtentions(); ++n)
 	{
 		Operator_Extension* op_ext = Op->GetExtension(n);
-		Engine_Extension* eng_ext = op_ext->CreateEngineExtention();
+		Engine_Extension* eng_ext = op_ext->CreateEngineExtention(this);
 		if (eng_ext)
 		{
 			eng_ext->SetEngine(this);

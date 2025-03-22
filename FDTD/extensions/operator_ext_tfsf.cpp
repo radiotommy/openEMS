@@ -409,7 +409,7 @@ bool Operator_Ext_TFSF::BuildExtension()
 	return false;
 }
 
-Engine_Extension* Operator_Ext_TFSF::CreateEngineExtention()
+Engine_Extension* Operator_Ext_TFSF::CreateEngineExtention(Engine *engine)
 {
 	return new Engine_Ext_TFSF(this);
 }

@@ -485,7 +485,7 @@ bool Operator_Ext_LumpedRLC::BuildExtension()
 	return true;
 }
 
-Engine_Extension* Operator_Ext_LumpedRLC::CreateEngineExtention()
+Engine_Extension* Operator_Ext_LumpedRLC::CreateEngineExtention(Engine *engine)
 {
 	Engine_Ext_LumpedRLC* eng_ext_RLC = new Engine_Ext_LumpedRLC(this);
 	return eng_ext_RLC;

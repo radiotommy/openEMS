@@ -98,7 +98,7 @@ bool Operator_Ext_Cylinder::BuildExtension()
 	return true;
 }
 
-Engine_Extension* Operator_Ext_Cylinder::CreateEngineExtention()
+Engine_Extension* Operator_Ext_Cylinder::CreateEngineExtention(Engine *engine)
 {
 	Engine_Ext_Cylinder* eng_ext = new Engine_Ext_Cylinder(this);
 	return eng_ext;

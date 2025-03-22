@@ -23,11 +23,6 @@
 #include "FDTD/operator.h"
 #include "engine_extension_dispatcher.h"
 
-struct upml_block_t {
-	unsigned int start[3];
-	unsigned int lines[3];
-};
-
 class Operator_Ext_UPML;
 
 class Engine_Ext_UPML : public Engine_Extension
@@ -47,10 +42,6 @@ public:
 	virtual void DoPreCurrentUpdates(int threadID);
 	virtual void DoPostCurrentUpdates() {Engine_Ext_UPML::DoPostCurrentUpdates(0);};
 	virtual void DoPostCurrentUpdates(int threadID);
-
-#if WITH_CUDA
-	virtual void SetEngine(Engine* eng);
-#endif
 
 protected:
 	template <typename EngType>
@@ -72,15 +63,6 @@ protected:
 
 	ArrayLib::ArrayNIJK<FDTD_FLOAT> volt_flux;
 	ArrayLib::ArrayNIJK<FDTD_FLOAT> curr_flux;
-
-#if WITH_CUDA
-	upml_block_t *d_area;
-	void DoPreVoltageUpdatesCuda(FDTD_FLOAT *d_volt, const int *d_dim);
-	void DoPostVoltageUpdatesCuda(FDTD_FLOAT *d_volt, const int *d_dim);
-
-	void DoPreCurrentUpdatesCuda(FDTD_FLOAT *d_curr, const int *d_dim);
-	void DoPostCurrentUpdatesCuda(FDTD_FLOAT *d_curr, const int *d_dim);
-#endif
 
 };
 

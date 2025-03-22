@@ -5,7 +5,8 @@
 if (WITH_CUDA)
   set(CUDA_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/engine_ext_excitation.cu
-    ${CMAKE_CURRENT_SOURCE_DIR}/engine_ext_upml.cu
+    ${CMAKE_CURRENT_SOURCE_DIR}/engine_ext_united_upml.cu
+    ${CMAKE_CURRENT_SOURCE_DIR}/engine_ext_united_upml.cpp
   )
 endif()
 
@@ -35,6 +36,8 @@ set(SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/engine_ext_steadystate.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/operator_ext_lumpedRLC.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/engine_ext_lumpedRLC.cpp
+
+  ${CMAKE_CURRENT_SOURCE_DIR}/engine_ext_united_upml.cpp
   PARENT_SCOPE
 )
 

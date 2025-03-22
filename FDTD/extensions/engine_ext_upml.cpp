@@ -22,6 +22,8 @@
 #include "tools/array_ops.h"
 #include "tools/useful.h"
 
+
+
 Engine_Ext_UPML::Engine_Ext_UPML(Operator_Ext_UPML* op_ext) : Engine_Extension(op_ext)
 {
 	m_Op_UPML = op_ext;
@@ -95,14 +97,6 @@ void Engine_Ext_UPML::DoPreVoltageUpdatesImpl(EngType* eng, int threadID)
 
 void Engine_Ext_UPML::DoPreVoltageUpdates(int threadID)
 {
-	if (m_Eng->GetType() == Engine::CUDA) {
-		if (threadID == 0) {
-			Engine_cuda *eng = static_cast<Engine_cuda*>(m_Eng);
-			DoPreVoltageUpdatesCuda(eng->GetDeviceVoltData(), eng->GetDeviceDimData());
-			//eng->UnloadVoltData(m_Op_UPML->m_StartPos, m_Op_UPML->m_numLines);
-		}
-		return;
-	} 
 	ENG_DISPATCH_ARGS(DoPreVoltageUpdatesImpl, threadID);
 }
 
@@ -147,14 +141,6 @@ void Engine_Ext_UPML::DoPostVoltageUpdatesImpl(EngType* eng, int threadID)
 
 void Engine_Ext_UPML::DoPostVoltageUpdates(int threadID)
 {
-	if (m_Eng->GetType() == Engine::CUDA) {
-		if (threadID == 0) {
-			Engine_cuda *eng = static_cast<Engine_cuda*>(m_Eng);
-			DoPostVoltageUpdatesCuda(eng->GetDeviceVoltData(), eng->GetDeviceDimData());
-			//eng->UnloadVoltData(m_Op_UPML->m_StartPos, m_Op_UPML->m_numLines);
-		}
-		return;
-	}
 	ENG_DISPATCH_ARGS(DoPostVoltageUpdatesImpl, threadID);
 }
 
@@ -203,14 +189,6 @@ void Engine_Ext_UPML::DoPreCurrentUpdatesImpl(EngType* eng, int threadID)
 
 void Engine_Ext_UPML::DoPreCurrentUpdates(int threadID)
 {
-	if (m_Eng->GetType() == Engine::CUDA) {
-		if (threadID == 0) {
-			Engine_cuda *eng = static_cast<Engine_cuda*>(m_Eng);
-			DoPreCurrentUpdatesCuda(eng->GetDeviceCurrData(), eng->GetDeviceDimData());
-			//eng->UnloadCurrData(m_Op_UPML->m_StartPos, m_Op_UPML->m_numLines);
-		}
-		return;
-	}
 	ENG_DISPATCH_ARGS(DoPreCurrentUpdatesImpl, threadID);
 }
 
@@ -255,13 +233,5 @@ void Engine_Ext_UPML::DoPostCurrentUpdatesImpl(EngType* eng, int threadID)
 
 void Engine_Ext_UPML::DoPostCurrentUpdates(int threadID)
 {
-	if (m_Eng->GetType() == Engine::CUDA) {
-		if (threadID == 0) {
-			Engine_cuda *eng = static_cast<Engine_cuda*>(m_Eng);
-			DoPostCurrentUpdatesCuda(eng->GetDeviceCurrData(), eng->GetDeviceDimData());
-			//eng->UnloadCurrData(m_Op_UPML->m_StartPos, m_Op_UPML->m_numLines);
-		}
-		return;
-	}
 	ENG_DISPATCH_ARGS(DoPostCurrentUpdatesImpl, threadID);
 }

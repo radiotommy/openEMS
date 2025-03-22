@@ -88,7 +88,7 @@ bool Operator_Ext_SteadyState::Add_H_Probe(unsigned int pos[3], int dir)
 	return true;
 }
 
-Engine_Extension* Operator_Ext_SteadyState::CreateEngineExtention()
+Engine_Extension* Operator_Ext_SteadyState::CreateEngineExtention(Engine *engine)
 {
 	m_Eng_Ext = new Engine_Ext_SteadyState(this);
 	return m_Eng_Ext;

@@ -353,7 +353,7 @@ void Operator_Ext_Excitation::setupCurrentExcitation( vector<unsigned int> const
 
 }
 
-Engine_Extension* Operator_Ext_Excitation::CreateEngineExtention()
+Engine_Extension* Operator_Ext_Excitation::CreateEngineExtention(Engine *engine)
 {
 	return new Engine_Ext_Excitation(this);
 }

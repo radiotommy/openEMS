@@ -20,7 +20,7 @@
 
 #include "FDTD/operator.h"
 #include "operator_extension.h"
-
+#include "engine_ext_united_upml.h"
 #include "tools/arraylib/array_nijk.h"
 
 class FunctionParser;
@@ -34,6 +34,7 @@ class FunctionParser;
 class Operator_Ext_UPML : public Operator_Extension
 {
 	friend class Engine_Ext_UPML;
+	friend class Engine_Ext_United_UPML;
 public:
 	virtual ~Operator_Ext_UPML();
 
@@ -66,7 +67,7 @@ public:
 
 	virtual bool BuildExtension();
 
-	virtual Engine_Extension* CreateEngineExtention();
+	virtual Engine_Extension* CreateEngineExtention(Engine *engine);
 
 	virtual string GetExtensionName() const {return string("Uniaxial PML Extension");}
 
@@ -76,6 +77,10 @@ public:
 	static bool Create_UPML(Operator* op, const int ui_BC[6], const unsigned int ui_size[6], const string gradFunc);
 
 protected:
+
+	static Engine_Ext_United_UPML *m_unitedEngine;		// pointer to the united engine extension
+	static std::vector<Operator_Ext_UPML*> m_opList;	// list of UPML operator extensions, can be used to create united engine
+
 	Operator_Ext_UPML(Operator* op);
 	int m_BC[6];
 	unsigned int m_Size[6];

@@ -1303,6 +1303,7 @@ void openEMS::RunFDTD()
 	PA->PreProcess();
 	int step=PA->Process();
 	if ((step<0) || (step>(int)NrTS)) step=NrTS;
+	printf("start run in %d steps\n", step);
 
 	while ((FDTD_Eng->GetNumberOfTimesteps()<NrTS) && (change>endCrit) && !CheckAbortCond())
 	{
@@ -1324,8 +1325,8 @@ void openEMS::RunFDTD()
 
 		t_diff = CalcDiffTime(currTime,prevTime);
 
-		//if (t_diff>4)
-		if ((currTS % 1000) == 0)
+		if (t_diff>4)
+		//if ((currTS % 1000) == 0)
 		{
 			t_run = CalcDiffTime(currTime,startTime);
 			speed = numCells*(currTS-prevTS)/t_diff;

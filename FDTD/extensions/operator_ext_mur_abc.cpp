@@ -182,7 +182,7 @@ bool Operator_Ext_Mur_ABC::BuildExtension()
 	return true;
 }
 
-Engine_Extension* Operator_Ext_Mur_ABC::CreateEngineExtention()
+Engine_Extension* Operator_Ext_Mur_ABC::CreateEngineExtention(Engine *engine)
 {
 	Engine_Ext_Mur_ABC* eng_ext = new Engine_Ext_Mur_ABC(this);
 	return eng_ext;

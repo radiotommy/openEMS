@@ -23,6 +23,12 @@
 
 using namespace std;
 
+
+Engine_Ext_United_UPML* Operator_Ext_UPML::m_unitedEngine = NULL;
+
+vector<Operator_Ext_UPML*> Operator_Ext_UPML::m_opList;	// list of UPML operator extensions, can be used to create united engine
+
+
 Operator_Ext_UPML::Operator_Ext_UPML(Operator* op) : Operator_Extension(op)
 {
 	setlocale(LC_NUMERIC, "en_US.UTF-8");
@@ -129,6 +135,12 @@ bool Operator_Ext_UPML::Create_UPML(Operator* op, const int ui_BC[6], const unsi
 	unsigned int start[3]={0 ,0 ,0};
 	unsigned int stop[3] ={op->GetNumberOfLines(0,true)-1,op->GetNumberOfLines(1,true)-1,op->GetNumberOfLines(2,true)-1};
 
+	m_opList.clear();
+	if (m_unitedEngine != NULL) {
+		delete m_unitedEngine;
+		m_unitedEngine = NULL;
+	}
+
 	//create a pml in x-direction over the full width of yz-space
 	if (BC[0]==3)
 	{
@@ -139,6 +151,7 @@ bool Operator_Ext_UPML::Create_UPML(Operator* op, const int ui_BC[6], const unsi
 		op_ext_upml->SetBoundaryCondition(BC, size);
 		op_ext_upml->SetRange(start,stop);
 		op->AddExtension(op_ext_upml);
+		m_opList.push_back(op_ext_upml);
 	}
 	if (BC[1]==3)
 	{
@@ -149,6 +162,7 @@ bool Operator_Ext_UPML::Create_UPML(Operator* op, const int ui_BC[6], const unsi
 		op_ext_upml->SetBoundaryCondition(BC, size);
 		op_ext_upml->SetRange(start,stop);
 		op->AddExtension(op_ext_upml);
+		m_opList.push_back(op_ext_upml);
 	}
 
 	//create a pml in y-direction over the xz-space (if a pml in x-direction already exists, skip that corner regions)
@@ -164,6 +178,7 @@ bool Operator_Ext_UPML::Create_UPML(Operator* op, const int ui_BC[6], const unsi
 		op_ext_upml->SetBoundaryCondition(BC, size);
 		op_ext_upml->SetRange(start,stop);
 		op->AddExtension(op_ext_upml);
+		m_opList.push_back(op_ext_upml);
 	}
 	if (BC[3]==3)
 	{
@@ -174,6 +189,7 @@ bool Operator_Ext_UPML::Create_UPML(Operator* op, const int ui_BC[6], const unsi
 		op_ext_upml->SetBoundaryCondition(BC, size);
 		op_ext_upml->SetRange(start,stop);
 		op->AddExtension(op_ext_upml);
+		m_opList.push_back(op_ext_upml);
 	}
 
 	//create a pml in z-direction over the xy-space (if a pml in x- and/or y-direction already exists, skip that corner/edge regions)
@@ -194,6 +210,7 @@ bool Operator_Ext_UPML::Create_UPML(Operator* op, const int ui_BC[6], const unsi
 		op_ext_upml->SetBoundaryCondition(BC, size);
 		op_ext_upml->SetRange(start,stop);
 		op->AddExtension(op_ext_upml);
+		m_opList.push_back(op_ext_upml);
 	}
 	if (BC[5]==3)
 	{
@@ -204,7 +221,9 @@ bool Operator_Ext_UPML::Create_UPML(Operator* op, const int ui_BC[6], const unsi
 		op_ext_upml->SetBoundaryCondition(BC, size);
 		op_ext_upml->SetRange(start,stop);
 		op->AddExtension(op_ext_upml);
+		m_opList.push_back(op_ext_upml);
 	}
+
 
 	BC[1]=0;
 	size[1]=0;
@@ -231,6 +250,9 @@ bool Operator_Ext_UPML::Create_UPML(Operator* op, const int ui_BC[6], const unsi
 			op_ext_upml->SetBoundaryCondition(BC, size);
 			op_ext_upml->SetRange(start,stop);
 			op_child->AddExtension(op_ext_upml);
+
+			// TODO: not sure this works for cylindrical multigrid operators 
+			m_opList.push_back(op_ext_upml);
 		}
 		if (BC[5]==3)
 		{
@@ -241,6 +263,9 @@ bool Operator_Ext_UPML::Create_UPML(Operator* op, const int ui_BC[6], const unsi
 			op_ext_upml->SetBoundaryCondition(BC, size);
 			op_ext_upml->SetRange(start,stop);
 			op_child->AddExtension(op_ext_upml);
+
+			// TODO: not sure this works for cylindrical multigrid operators 
+			m_opList.push_back(op_ext_upml);
 		}
 	}
 
@@ -445,10 +470,19 @@ bool Operator_Ext_UPML::BuildExtension()
 	return true;
 }
 
-Engine_Extension* Operator_Ext_UPML::CreateEngineExtention()
+Engine_Extension* Operator_Ext_UPML::CreateEngineExtention(Engine *engine)
 {
-	Engine_Ext_UPML* eng_ext = new Engine_Ext_UPML(this);
-	return eng_ext;
+	printf("create a engine extension for UPML extension\n");
+	if (engine->GetType() == Engine::CUDA) {
+		if (m_unitedEngine == NULL) 
+		{
+			m_unitedEngine = new Engine_Ext_United_UPML(&m_opList);
+			return m_unitedEngine;
+		}
+		return NULL;
+	}
+
+	return new Engine_Ext_UPML(this);
 }
 
 void Operator_Ext_UPML::ShowStat(ostream &ostr)  const

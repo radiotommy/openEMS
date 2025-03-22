@@ -33,7 +33,7 @@ public:
 	virtual Operator_Extension* Clone(Operator* op);
 
 	virtual bool BuildExtension();
-	virtual Engine_Extension* CreateEngineExtention();
+	virtual Engine_Extension* CreateEngineExtention(Engine *engine);
 
 	virtual bool IsCylinderCoordsSave(bool closedAlpha, bool R0_included) const {UNUSED(closedAlpha); UNUSED(R0_included); return true;}
 	virtual bool IsCylindricalMultiGridSave(bool child) const {UNUSED(child); return true;}

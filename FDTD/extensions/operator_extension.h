@@ -29,6 +29,7 @@
 class Operator;
 class Operator_Cylinder;
 class Engine_Extension;
+class Engine;
 
 //! Abstract base-class for all operator extensions
 class Operator_Extension
@@ -46,7 +47,7 @@ public:
 
 	virtual bool BuildExtension() {return true;}
 
-	virtual Engine_Extension* CreateEngineExtention() {return 0;}
+	virtual Engine_Extension* CreateEngineExtention(Engine *engine) {return 0;};
 	virtual Engine_Extension* GetEngineExtention() {return m_Eng_Ext;}
 
 	//! The cylindrical operator will check whether the extension is save to use. Default is false. Derive this method to override.
