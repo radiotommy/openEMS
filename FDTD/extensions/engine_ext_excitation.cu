@@ -10,7 +10,7 @@
 #if 1
 
 __global__
-void kernelApply2VA(volatile FDTD_FLOAT *d_va, const exitation_point *ep, const FDTD_FLOAT* sig_va, const int *d_dim, const int numTS, const int p, const int N)
+void kernelApply2VA(volatile FDTD_FLOAT *d_va, const exitation_point *ep, const FDTD_FLOAT* sig_va, const dim3 dim, const int numTS, const int p, const int N)
 {
     int n = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -24,7 +24,7 @@ void kernelApply2VA(volatile FDTD_FLOAT *d_va, const exitation_point *ep, const 
 	exc_pos *= (exc_pos<(int)ep->length);
 	int ny = ep->dir;
 
-    int pos = ep->x * d_dim[1] * d_dim[2] + ep->y * d_dim[2] + ep->z;
+    int pos = ep->x * dim.y * dim.z + ep->y * dim.z + ep->z;
 
     volatile FDTD_FLOAT* va = d_va + (3 * pos);
 
@@ -58,15 +58,6 @@ void Engine_Ext_Excitation::Apply2VoltagesCuda(Engine_cuda *eng)
     );
     checkCuda(cudaDeviceSynchronize());
     checkCudaErrors();
-#if 0
-    unsigned int pos[3];
-    for (int n = 0; n < N; n++) {
-		pos[0]=m_Op_Exc->Volt_index[0][n];
-		pos[1]=m_Op_Exc->Volt_index[1][n];
-		pos[2]=m_Op_Exc->Volt_index[2][n];
-        eng->UnloadVoltData(m_Op_Exc->Volt_dir[n], pos);
-    }
-#endif
 }
 
 
@@ -96,15 +87,6 @@ void Engine_Ext_Excitation::Apply2CurrentCuda(Engine_cuda *eng)
 
     checkCuda(cudaDeviceSynchronize());
     checkCudaErrors();
-#if 0
-    unsigned int pos[3];
-    for (int n = 0; n < N; n++) {
-		pos[0]=m_Op_Exc->Volt_index[0][n];
-		pos[1]=m_Op_Exc->Volt_index[1][n];
-		pos[2]=m_Op_Exc->Volt_index[2][n];
-        eng->UnloadCurrData(m_Op_Exc->Volt_dir[n], pos);
-    }
-#endif
 }
 
 

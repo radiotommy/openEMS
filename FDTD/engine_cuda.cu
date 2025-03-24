@@ -26,71 +26,95 @@ using namespace std;
 #define THREADS     1024
 
 
+__constant__ int g_dim[3];
+
+
 // Kernel for voltage updates with flat arrays
 __global__
-void updateVoltagesKernel(FDTD_FLOAT *volt, const FDTD_FLOAT *curr,
-									 const FDTD_FLOAT *opvv, const FDTD_FLOAT *opvi,
-                                     int *dim, int N)
+void updateVoltagesKernel(FDTD_FLOAT *volt, const FDTD_FLOAT *curr, const FDTD_FLOAT *op_vv_vi, int N, dim3 dim)
 {
     for (auto cell : hemi::grid_stride_range(0, N)) {
 
         int offs = cell * 3;
-        int x = cell / (dim[1] * dim[2]);
-        int y = (cell / dim[2]) % dim[1];
-        int z = cell % dim[2];
+        int x = cell / (dim.y * dim.z);
+        int y = (cell / dim.z) % dim.y;
+        int z = cell % dim.z;
 
-        FDTD_FLOAT* v= volt + offs;
-        const FDTD_FLOAT* i= curr + offs;
-        const FDTD_FLOAT* vv = opvv + offs;
-        const FDTD_FLOAT* vi = opvi + offs;
+        const FDTD_FLOAT* ix = curr + ((x != 0) ? offs - dim.y * dim.z * 3 : offs);
+        const FDTD_FLOAT* iy = curr + ((y != 0) ? offs - dim.z * 3 : offs);
+        const FDTD_FLOAT* iz = curr + ((z != 0) ? offs - 3 : offs);
+
+        float2 vvvi[3];
+        op_vv_vi += offs * 2;
+
+        vvvi[0] = *(float2*)(op_vv_vi);
+        vvvi[1] = *(float2*)(op_vv_vi + 2);
+        vvvi[2] = *(float2*)(op_vv_vi + 4);
+
+        FDTD_FLOAT i[3];
+        const FDTD_FLOAT *p = curr + offs;
+        i[0]= *p++;
+        i[1] = *p++;
+        i[2] = *p++;
 
         // nbr cells in x, y, z direction
-        const FDTD_FLOAT* ix = curr + (3 * flat_index(x - ((x!=0)), y, z, dim));
-        const FDTD_FLOAT* iy = curr + (3 * flat_index(x, (y - (y!=0)), z, dim));
-        const FDTD_FLOAT* iz = curr + (3 * flat_index(x, y, (z - (z!=0)), dim));
+        vvvi[0].y *= (i[2] - iy[2] - i[1] + iz[1]);
+        vvvi[1].y *= (i[0] - iz[0] - i[2] + ix[2]);
+        vvvi[2].y *= (i[1] -ix[1] - i[0] + iy[0]); 
 
         // update x
-        v[0]  = v[0] * vv[0] + vi[0] * (i[2] - iy[2] - i[1] + iz[1]);
+        FDTD_FLOAT* v= volt + offs;
+        v[0]  = v[0] * vvvi[0].x + vvvi[0].y; 
         // update y
-        v[1] = v[1] * vv[1] + vi[1] * (i[0] - iz[0] - i[2] + ix[2]);
+        v[1] = v[1] * vvvi[1].x + vvvi[1].y;
         // update z
-        v[2] = v[2] * vv[2] + vi[2] * (i[1] -ix[1] - i[0] + iy[0]); 
+        v[2] = v[2] * vvvi[2].x +  vvvi[2].y;
     }
 }
 
 
 // Kernel for current updates
 __global__
-void updateCurrentsKernel(FDTD_FLOAT *curr, const FDTD_FLOAT *volt,
-									 const FDTD_FLOAT *opii, const FDTD_FLOAT *opiv,
-                                     int *dim, int N)
+void updateCurrentsKernel(FDTD_FLOAT *curr, const FDTD_FLOAT *volt, const FDTD_FLOAT *op_ii_iv, int N, dim3 dim)
 {
     for (auto cell : hemi::grid_stride_range(0, N)) {
 
         int offs = cell * 3;
-        int x = cell / (dim[1] * dim[2]);
-        int y = (cell / dim[2]) % dim[1];
-        int z = cell % dim[2];
+        int y = (cell / dim.z) % dim.y;
+        int z = cell % dim.z;
 
-        if ((y < dim[1] - 1) && (z < dim[2] - 1)) {
-            const FDTD_FLOAT* v = volt + offs;
-            FDTD_FLOAT* i = curr + offs;
-            const FDTD_FLOAT* ii = opii + offs;
-            const FDTD_FLOAT* iv = opiv + offs;
+        if ((y < dim.y - 1) && (z < dim.z - 1)) {
 
+            volt += offs;
             // next nbr cells in x, y, z direction
-            const FDTD_FLOAT* vx = volt + (3 * flat_index(x + 1, y, z, dim));
-            const FDTD_FLOAT* vy = volt + (3 * flat_index(x, y + 1, z, dim));
-            const FDTD_FLOAT* vz = volt + (3 * flat_index(x, y,  z + 1, dim));
+            const FDTD_FLOAT* vx = volt + (dim.y * dim.z * 3);
+            const FDTD_FLOAT* vy = volt + (3 * dim.z);
+            const FDTD_FLOAT* vz = volt + 3;
 
+            float2 iiiv[3];
+            op_ii_iv += offs * 2;
+
+            iiiv[0] = *(float2 *)(&op_ii_iv[0]);
+            iiiv[1] = *(float2 *)(&op_ii_iv[2]);
+            iiiv[2] = *(float2 *)(&op_ii_iv[4]);
+
+            FDTD_FLOAT v[3];
+            v[0] = volt[0];
+            v[1] = volt[1];
+            v[2] = volt[2];
+
+            iiiv[0].y *= (v[2] - vy[2] - v[1] + vz[1]);
+            iiiv[1].y *= (v[0] - vz[0] - v[2] + vx[2]);
+            iiiv[2].y *= (v[1] - vx[1] - v[0] + vy[0]);
+
+            FDTD_FLOAT* i = curr + offs;
             // update x
-            i[0] = i[0] * ii[0] + iv[0] * (v[2] - vy[2] - v[1] + vz[1]);
+            i[0] = i[0] * iiiv[0].x + iiiv[0].y;
             // update y
-            i[1] = i[1] * ii[1] + iv[1] * (v[0] - vz[0] - v[2] + vx[2]);
+            i[1] = i[1] * iiiv[1].x + iiiv[1].y;
             // update z
-            i[2] = i[2] * ii[2] + iv[2] * (v[1] - vx[1] - v[0] + vy[0]);
+            i[2] = i[2] * iiiv[2].x + iiiv[2].y;
         }
-
     }
 }
 
@@ -116,7 +140,7 @@ __device__ void wrapReduce(volatile double *vv, volatile double *ii, int tid)
     ii[tid] += ii[(tid + 1)];
 }
 
-__global__ void calcFastEnergyKernel(FDTD_FLOAT *volt, FDTD_FLOAT *curr, double *p_sum, int *dim)
+__global__ void calcFastEnergyKernel(FDTD_FLOAT *volt, FDTD_FLOAT *curr, double *p_sum, dim3 dim)
 {
     __shared__ double vv[THREADS]; // shared memory for energy calculation, between threads in a block
     __shared__ double ii[THREADS]; // shared memory for energy calculation, between threads in a block
@@ -126,12 +150,12 @@ __global__ void calcFastEnergyKernel(FDTD_FLOAT *volt, FDTD_FLOAT *curr, double 
     int tid = threadIdx.x;
 
     // Process all cells in strides
-    int total = dim[0] * dim[1] * dim[2];
+    int total = dim.x * dim.y * dim.z;
     for (int cell = tid; cell < total; cell += THREADS) {
-        int x = cell / (dim[1] * dim[2]);
-        int y = (cell / dim[2]) % dim[1];
-        int z = cell % dim[2];
-        if (x < dim[0] - 1 && y < dim[1] - 1 && z < dim[2] - 1) {
+        int x = cell / (dim.y * dim.z);
+        int y = (cell / dim.z) % dim.y;
+        int z = cell % dim.z;
+        if (x < dim.x - 1 && y < dim.y - 1 && z < dim.z - 1) {
             int offs = cell * 3;
             FDTD_FLOAT *v = volt + offs;
             FDTD_FLOAT *i = curr + offs;
@@ -191,6 +215,27 @@ Engine_cuda::~Engine_cuda()
     this->Reset();
 }
 
+
+
+static void load_data_pair(FDTD_FLOAT *dest, const FDTD_FLOAT *a, const FDTD_FLOAT *b, int num_cells)
+{
+    FDTD_FLOAT *buf;
+
+    checkCuda(cudaMallocHost(&buf, num_cells * 6 * sizeof(FDTD_FLOAT)));
+
+    FDTD_FLOAT *p = buf;
+    for (int i = 0; i < num_cells; i++) {
+        *p++ = *a++; *p++ = *b++; 
+        *p++ = *a++; *p++ = *b++; 
+        *p++ = *a++; *p++ = *b++;
+    }
+
+    checkCuda(cudaMemcpy(dest, buf, num_cells * 6 * sizeof(FDTD_FLOAT), cudaMemcpyHostToDevice));
+
+    cudaFree(buf);
+
+}
+
 void Engine_cuda::Init() {
 	   
 
@@ -220,6 +265,8 @@ void Engine_cuda::Init() {
     cudaSetDevice(m_cuda_device_number);
     cudaDeviceGetAttribute(&m_supports_coop_launch, cudaDevAttrCooperativeLaunch, m_cuda_device_number);
 
+    m_dim = dim3(numLines[0], numLines[1], numLines[2]);
+
 	numTS = 0;
 	volt_ptr = new ArrayLib::ArrayNIJK<FDTD_FLOAT>("volt", numLines);
 	curr_ptr = new ArrayLib::ArrayNIJK<FDTD_FLOAT>("curr", numLines);
@@ -235,8 +282,12 @@ void Engine_cuda::Init() {
 
     checkCuda(cudaMalloc(&d_energy_sum, sizeof(double)));
 
-    checkCuda(cudaMalloc(&d_dim, 3 * sizeof(int)));
-    checkCuda(cudaMemcpy(d_dim, numLines, 3 * sizeof(int), cudaMemcpyHostToDevice));
+    int num_cells = numLines[0] * numLines[1] * numLines[2];
+    checkCuda(cudaMalloc(&d_op_vv_vi, 6 * num_cells * sizeof(FDTD_FLOAT)));
+    checkCuda(cudaMalloc(&d_op_ii_iv, 6 * num_cells * sizeof(FDTD_FLOAT)));
+
+    load_data_pair(d_op_vv_vi, Op->vv_ptr->data(), Op->vi_ptr->data(), num_cells);
+    load_data_pair(d_op_ii_iv, Op->ii_ptr->data(), Op->iv_ptr->data(), num_cells);
 
     InitExtensions();
     SortExtensionByPriority();
@@ -249,7 +300,6 @@ void Engine_cuda::Reset() {
     curr_ptr = NULL;
 
     // Free GPU memory
-    if (d_dim)          checkCuda(cudaFree(d_dim));
     if (d_energy_sum)   checkCuda(cudaFree(d_energy_sum));
 
     ClearExtensions();
@@ -262,8 +312,9 @@ void Engine_cuda::UpdateVoltages(unsigned int startX, unsigned int numX) {
 
     // Launch kernel
     int blocks = (N  + THREADS - 1) / THREADS;
+    dim3 dim(numLines[0], numLines[1], numLines[2]);
     updateVoltagesKernel<<< blocks, THREADS >>>(volt_ptr->device_data(), (const FDTD_FLOAT*)curr_ptr->device_data(), 
-            Op->vv_ptr->device_data(), Op->vi_ptr->device_data(), d_dim, N);
+            d_op_vv_vi, N, dim);
 
     checkCudaErrors();
     checkCuda(cudaDeviceSynchronize());
@@ -276,8 +327,10 @@ void Engine_cuda::UpdateCurrents(unsigned int startX, unsigned int numX) {
 
     // Launch kernel
     int blocks = (N  + THREADS - 1) / THREADS;
+    dim3 dim(numLines[0], numLines[1], numLines[2]);
+
     updateCurrentsKernel<<< blocks, THREADS >>>(curr_ptr->device_data(), (const FDTD_FLOAT*)volt_ptr->device_data(), 
-            Op->ii_ptr->device_data(), Op->iv_ptr->device_data(), d_dim, N);
+            d_op_ii_iv, N, dim);
     checkCudaErrors();
     checkCuda(cudaDeviceSynchronize());
 }
@@ -306,7 +359,7 @@ double Engine_cuda::CalcFastEnergy()
     if (m_volt_updated || m_curr_updated) {
         printf("volt & curr updated: %d,%d\n", m_volt_updated, m_curr_updated);
     }
-    calcFastEnergyKernel<<<1, THREADS>>>(volt_ptr->device_data(), curr_ptr->device_data(), d_energy_sum, d_dim);
+    calcFastEnergyKernel<<<1, THREADS>>>(volt_ptr->device_data(), curr_ptr->device_data(), d_energy_sum, m_dim);
 
     checkCudaErrors();
     checkCuda(cudaDeviceSynchronize());
@@ -358,25 +411,3 @@ bool Engine_cuda::IterateTS(unsigned int iterTS) {
     return true;
 }
 
-
-void Engine_cuda::UnloadVoltData(unsigned int *start, unsigned int *lines)
-{
-    for (unsigned int x = 0; x < lines[0]; ++x) {
-        for (unsigned int y = 0; y < lines[1]; ++y) {
-            int i = getLinearIndex(0, *start + x, start[1] + y, start[2]);
-            FDTD_FLOAT *p = volt_ptr->device_data() + i;
-            checkCuda(cudaMemcpy(p, volt_ptr->data(), sizeof(FDTD_FLOAT) * 3 * lines[2], cudaMemcpyHostToDevice));
-        }
-    }
-}
-
-void Engine_cuda::UnloadCurrData(unsigned int *start, unsigned int *lines)
-{
-    for (unsigned int x = 0; x < lines[0]; ++x) {
-        for (unsigned int y = 0; y < lines[1]; ++y) {
-            int i = getLinearIndex(0, *start + x, start[1] + y, start[2]);
-            FDTD_FLOAT *p = curr_ptr->device_data() + i;
-            checkCuda(cudaMemcpy(p, curr_ptr->data(), sizeof(FDTD_FLOAT) * 3 * lines[2], cudaMemcpyHostToDevice));
-        }
-    }
-}

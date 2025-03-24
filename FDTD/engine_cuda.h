@@ -36,22 +36,7 @@ public:
 
 	virtual inline FDTD_FLOAT* GetDeviceVoltData() { return volt_ptr->device_data(); }
 	virtual inline FDTD_FLOAT* GetDeviceCurrData() { return curr_ptr->device_data(); }
-	virtual inline int* GetDeviceDimData() { return d_dim; }
-	virtual inline void UnloadVoltData() { volt_ptr->unload(); }
-	virtual inline void UnloadCurrData() { volt_ptr->unload(); }
-	void UnloadVoltData(unsigned int *start, unsigned int *lines);
-	void UnloadCurrData(unsigned int *start, unsigned int *lines);
-
-	virtual inline void UnloadVoltData(unsigned int n, const unsigned int pos[3]) {
-		int i = getLinearIndex(n, pos[0], pos[1], pos[2]);
-		checkCuda(cudaMemcpy(volt_ptr->data() + i, volt_ptr->device_data() + i, sizeof(FDTD_FLOAT), cudaMemcpyDeviceToHost));
-	}
-
-
-	virtual inline void UnloadCurrData(unsigned int n, const unsigned int pos[3]) {
-		int i = getLinearIndex(n, pos[0], pos[1], pos[2]);
-		checkCuda(cudaMemcpy(curr_ptr->data() + i, curr_ptr->device_data() + i, sizeof(FDTD_FLOAT), cudaMemcpyDeviceToHost));
-	}
+	virtual inline dim3 GetDeviceDimData() { return m_dim; }
 
 	//this access functions muss be overloaded by any new engine using a different storage model
 #if 1
@@ -126,12 +111,13 @@ protected:
 		return getLinearIndex(n, pos[0], pos[1], pos[2]);
 	}
 
-
-
-	int *d_dim;
+	dim3 m_dim;
 
 	double *d_energy_sum;
 	FDTD_FLOAT *d_fastEnergy;
+
+	FDTD_FLOAT *d_op_vv_vi;
+	FDTD_FLOAT *d_op_ii_iv;
 
 private:
 	int m_volt_updated;

@@ -57,8 +57,8 @@ void Engine_Ext_United_UPML::SetEngine(Engine* eng)
         op->iifn.load();
         op->iifo.load();
 
-        memcpy(block.start, op->m_StartPos, sizeof(block.start));
-        memcpy(block.lines, op->m_numLines, sizeof(block.lines));
+        block.start = dim3(op->m_StartPos[0], op->m_StartPos[1], op->m_StartPos[2]);
+        block.lines = dim3(op->m_numLines[0], op->m_numLines[1], op->m_numLines[2]);
         block.volt_flux = volt_flux->device_data();
         block.curr_flux = curr_flux->device_data();
 
@@ -75,50 +75,38 @@ void Engine_Ext_United_UPML::SetEngine(Engine* eng)
 }
 
 __device__
-int flat_indx_in_full_grid(int i, const upml_block_t *area, const int *dim)
+int flat_indx_in_full_grid(int i, const upml_block_t *area, const dim3 *dim)
 {
-    int loc_x = i / (area->lines[1] * area->lines[2]);
-    int loc_y = (i / area->lines[2]) % area->lines[1];
-    int loc_z = i % area->lines[2];
+    int loc_x = i / (area->lines.y * area->lines.z);
+    int loc_y = (i / area->lines.z) % area->lines.y;
+    int loc_z = i % area->lines.z;
 
-    int x = loc_x + area->start[0];
-    int y = loc_y + area->start[1];
-    int z = loc_z + area->start[2];  
+    int x = loc_x + area->start.x;
+    int y = loc_y + area->start.y;
+    int z = loc_z + area->start.z;  
 
-    return (x * dim[1] * dim[2] + y * dim[2] + z);
+    return (x * dim->y * dim->z + y * dim->z + z);
 }
 
 __global__ 
-void PreVoltageUpdateKernel(FDTD_FLOAT *d_volt, const upml_block_t *ublk, const int *dim)
+void PreVoltageUpdateKernel(FDTD_FLOAT *d_volt, const upml_block_t *ublk, const dim3 dim)
 {
     // we use blockIdx.y to determine which block we are in, 
     // blockIdx.x and threadIdx.x to get the data index within that block
-
-    const upml_block_t *area = &ublk[blockIdx.y];
-    int N = area->lines[0] * area->lines[1] * area->lines[2];
-
-    for (auto i : hemi::grid_stride_range(0, N)) {
+    const upml_block_t area = ublk[blockIdx.y];
+    int N = area.lines.x * area.lines.y * area.lines.z;
+    int cell = blockIdx.x * blockDim.x + threadIdx.x;
+    if (cell < N) {
         // find the cell location in whole matrix
-        int gi = flat_indx_in_full_grid(i, area, dim);
+        int gi = flat_indx_in_full_grid(cell, &area, &dim) * 3 + threadIdx.y;
+        int i = cell * 3 + threadIdx.y;
 
-        FDTD_FLOAT *volt = d_volt + (gi * 3);
-        FDTD_FLOAT *vv = area->vv + i * 3;
-        FDTD_FLOAT *vvfo = area->vvfo + i * 3;
-        FDTD_FLOAT *flux = area->volt_flux + i * 3;
+        FDTD_FLOAT *volt = d_volt + gi;
+        FDTD_FLOAT *flux = area.volt_flux + i;
 
-
-        FDTD_FLOAT f = vv[0] * volt[0] - vvfo[0] * flux[0];
+        FDTD_FLOAT f = area.vv[i] * volt[0] - area.vvfo[i] * flux[0];
         volt[0] = flux[0];
         flux[0] = f;
-
-        f = vv[1] * volt[1] - vvfo[1] * flux[1];
-        volt[1] = flux[1];
-        flux[1] = f;
-
-
-        f = vv[2] * volt[2] - vvfo[2] * flux[2];
-        volt[2] = flux[2];
-        flux[2] = f;
     }
 }
 
@@ -128,40 +116,32 @@ void Engine_Ext_United_UPML::DoPreVoltageUpdates(int threadID)
 
     Engine_cuda *eng = static_cast<Engine_cuda*>(m_Eng);
     int upml_blocks = m_Op_UPML_List->size(); 
-    int tBlockSizeX = (m_max_num_cells_in_block + 1023) / 1024;
+    int tBlockSizeX = (m_max_num_cells_in_block + 340) / 341;
 
     dim3 blk(tBlockSizeX, upml_blocks);
+    dim3 thread(341, 3);
 
-    PreVoltageUpdateKernel<<<blk, 1024>>>(eng->GetDeviceVoltData(), m_d_blks, eng->GetDeviceDimData());
+    PreVoltageUpdateKernel<<<blk, thread>>>(eng->GetDeviceVoltData(), m_d_blks, eng->GetDeviceDimData());
 
 }
 
 
 __global__
-void PostVoltageUpdateKernel(FDTD_FLOAT *d_volt, const upml_block_t *ublk, const int *dim) 
+void PostVoltageUpdateKernel(FDTD_FLOAT *d_volt, const upml_block_t *ublk, const dim3 dim) 
 {
-    const upml_block_t *area = &ublk[blockIdx.y];
-    int N = area->lines[0] * area->lines[1] * area->lines[2];
+    const upml_block_t area = ublk[blockIdx.y];
+    int N = area.lines.x * area.lines.y * area.lines.z * 3;
 
     for (auto i : hemi::grid_stride_range(0, N)) {
-        int gi = flat_indx_in_full_grid(i, area, dim);
+        int gi = flat_indx_in_full_grid(i / 3, &area, &dim) * 3 + (i % 3);
 
-        FDTD_FLOAT *volt = d_volt + (gi * 3);
-        FDTD_FLOAT *vvfn = area->vvfn + (i * 3);
-        FDTD_FLOAT *flux = area->volt_flux + (i * 3);
+        FDTD_FLOAT *volt = d_volt + gi;
+        FDTD_FLOAT vvfn = area.vvfn[i];
+        FDTD_FLOAT *flux = area.volt_flux + i;
 
         FDTD_FLOAT f = flux[0];
         flux[0] = volt[0];
-        volt[0] = f + vvfn[0] * flux[0];
-
-
-        f = flux[1];
-        flux[1] = volt[1];
-        volt[1] = f + vvfn[1] * flux[1];
-
-        f = flux[2];
-        flux[2] = volt[2];
-        volt[2] = f + vvfn[2] * flux[2];
+        volt[0] = f + vvfn * volt[0];
     }
 }
 
@@ -171,43 +151,32 @@ void Engine_Ext_United_UPML::DoPostVoltageUpdates(int threadID)
 
     Engine_cuda *eng = static_cast<Engine_cuda*>(m_Eng);
     int upml_blocks = m_Op_UPML_List->size(); 
-    int tBlockSizeX = (m_max_num_cells_in_block + 1023) / 1024;
+    int tBlockSizeX = (m_max_num_cells_in_block * 3 + 1023) / 1024;
 
     dim3 blk (tBlockSizeX, upml_blocks);
 
     PostVoltageUpdateKernel<<<blk, 1024>>>(eng->GetDeviceVoltData(), m_d_blks, eng->GetDeviceDimData());
-
 }
 
 __global__ 
-void PreCurrentUpdateKernel(FDTD_FLOAT *d_curr, const upml_block_t *ublk, const int *dim) 
+void PreCurrentUpdateKernel(FDTD_FLOAT *d_curr, const upml_block_t *ublk, const dim3 dim) 
 {
-    const upml_block_t *area = &ublk[blockIdx.y];
-    int N = area->lines[0] * area->lines[1] * area->lines[2];
-
-    for (auto i : hemi::grid_stride_range(0, N)) {
+    // we use blockIdx.y to determine which block we are in, 
+    // blockIdx.x and threadIdx.x to get the data index within that block
+    const upml_block_t area = ublk[blockIdx.y];
+    int N = area.lines.x * area.lines.y * area.lines.z * 3;
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < N) {
         // find the cell location in whole matrix
+        int gi = flat_indx_in_full_grid(i / 3, &area, &dim) * 3 + (i % 3);
 
-        int gi = flat_indx_in_full_grid(i, area, dim);
+        FDTD_FLOAT *curr = d_curr + gi;
+        FDTD_FLOAT *flux = area.curr_flux + i;
 
-        FDTD_FLOAT *curr = d_curr + (gi * 3);
-        FDTD_FLOAT *ii = area->ii + i * 3;
-        FDTD_FLOAT *iifo = area->iifo + i * 3;
-        FDTD_FLOAT *flux = area->curr_flux + (i * 3);
-
-        FDTD_FLOAT f = ii[0] * curr[0] - iifo[0] * flux[0];
+        FDTD_FLOAT f = area.ii[i] * curr[0] - area.iifo[i] * flux[0];
         curr[0] = flux[0];
         flux[0] = f;
-
-        f = ii[1] * curr[1] - iifo[1] * flux[1];
-        curr[1] = flux[1];
-        flux[1] = f;
-
-        f = ii[2] * curr[2] - iifo[2] * flux[2];
-        curr[2] = flux[2];  
-        flux[2] = f;
     }
-
 }
 
 
@@ -217,7 +186,8 @@ void Engine_Ext_United_UPML::DoPreCurrentUpdates(int threadID)
 
     Engine_cuda *eng = static_cast<Engine_cuda*>(m_Eng);
     int upml_blocks = m_Op_UPML_List->size(); 
-    int tBlockSizeX = (m_max_num_cells_in_block + 1023) / 1024;
+
+    int tBlockSizeX = (m_max_num_cells_in_block * 3 + 1023) / 1024;
 
     dim3 blk (tBlockSizeX, upml_blocks);
 
@@ -227,17 +197,17 @@ void Engine_Ext_United_UPML::DoPreCurrentUpdates(int threadID)
 
 
 __global__
-void PostCurrentUpdateKernel(FDTD_FLOAT *d_curr, const upml_block_t *ublk, const int *dim)
+void PostCurrentUpdateKernel(FDTD_FLOAT *d_curr, const upml_block_t *ublk, const dim3 dim)
 {
-    const upml_block_t *area = &ublk[blockIdx.y];
-    int N = area->lines[0] * area->lines[1] * area->lines[2];
+    const upml_block_t area = ublk[blockIdx.y];
+    int N = area.lines.x * area.lines.y * area.lines.z;
 
     for (auto i : hemi::grid_stride_range(0, N)) {
-        int gi = flat_indx_in_full_grid(i, area, dim);
+        int gi = flat_indx_in_full_grid(i, &area, &dim);
 
         FDTD_FLOAT *curr = d_curr + (gi * 3);
-        FDTD_FLOAT *flux = area->curr_flux + (i * 3);
-        FDTD_FLOAT *iifn = area->iifn + (i * 3);
+        FDTD_FLOAT *flux = area.curr_flux + (i * 3);
+        FDTD_FLOAT *iifn = area.iifn + (i * 3);
 
         FDTD_FLOAT f = flux[0];
         flux[0] = curr[0];

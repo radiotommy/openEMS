@@ -24,8 +24,8 @@
 #include "engine_extension_dispatcher.h"
 
 struct upml_block_t {
-	unsigned int start[3];
-	unsigned int lines[3];
+	dim3 start;
+	dim3 lines;
     FDTD_FLOAT *volt_flux;
     FDTD_FLOAT *curr_flux;
     FDTD_FLOAT *vv;
