@@ -252,12 +252,12 @@ void Engine_cuda::Init() {
     cudaDeviceProp prop;
     cudaGetDeviceProperties(&prop, m_cuda_device_number);
     cout << "  Running on device: " << prop.name << endl;
-    cout << "    max block dimensions" \
+    cout << "    max block dimensions " \
         << prop.maxThreadsDim[0] << "," \
         << prop.maxThreadsDim[1] << "," \
         << prop.maxThreadsDim[2] << endl;
 
-    cout << "    max block dimensions" \
+    cout << "    max block dimensions " \
         << prop.maxGridSize[0] << "," \
         << prop.maxGridSize[1] << "," \
         << prop.maxGridSize[2] << endl;
@@ -269,6 +269,8 @@ void Engine_cuda::Init() {
 
 	numTS = 0;
     int num_cells = numLines[0] * numLines[1] * numLines[2];
+
+    printf("simulation dim: %d, %d, %d\n", m_dim.x, m_dim.y, m_dim.z); fflush(stdout);
 
     // Allocate GPU memory
 	volt_array = new CudaHelper::Array<FDTD_FLOAT>(num_cells * 3);
@@ -367,11 +369,11 @@ bool Engine_cuda::IterateTS(unsigned int iterTS) {
     m_curr_updated_by_host = 1;
 
     if (m_volt_updated) {
-        printf("load volt to cuda\n");
+        printf("load volt to cuda\n"); fflush(stdout);
         volt_array->load_to_device_async();
     }
     if (m_curr_updated) {
-        printf("load curr to cuda\n");
+        printf("load curr to cuda\n"); fflush(stdout);
         curr_array->load_to_device_async();
     }
     m_host_data_locked = true;

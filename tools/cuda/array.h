@@ -13,6 +13,7 @@ namespace CudaHelper {
     public:
         Array(size_t n)
         {
+            extPtr = NULL;
             checkCuda(cudaHostAlloc(&hPtr, n * sizeof(T), cudaHostAllocDefault));
             checkCuda(cudaMalloc(&dPtr, n * sizeof(T)));
             nSize = n;
@@ -36,6 +37,7 @@ namespace CudaHelper {
         size_t bytes()   const {return nSize * sizeof(T); }
         T* device_data() {return dPtr;}
         T* host_data() {return hPtr;}
+        T at(size_t n) {return hPtr;}
 
         void inline clear() 
         {
