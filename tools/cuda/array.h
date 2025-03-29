@@ -37,7 +37,7 @@ namespace CudaHelper {
         size_t bytes()   const {return nSize * sizeof(T); }
         T* device_data() {return dPtr;}
         T* host_data() {return hPtr;}
-        T at(size_t n) {return hPtr;}
+        T at(size_t n) {return hPtr[n];}
 
         void inline clear() 
         {
