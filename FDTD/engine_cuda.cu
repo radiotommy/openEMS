@@ -385,6 +385,8 @@ bool Engine_cuda::IterateTS(unsigned int iterTS) {
     }
     m_host_data_locked = true;
 
+
+
     for (unsigned int iter = 0; iter < iterTS; ++iter) {
         DoPreVoltageUpdates();
         UpdateVoltages(0, numLines[0]);
@@ -392,15 +394,23 @@ bool Engine_cuda::IterateTS(unsigned int iterTS) {
         DoPostVoltageUpdates();
         Apply2Voltages();
 
+        if (iter == iterTS - 1) {
+	        checkCuda(cudaMemcpyAsync(volt_ptr->data(), volt_ptr->device_data(), volt_ptr->bytes(), cudaMemcpyHostToDevice));
+        }
+
         DoPreCurrentUpdates();
         UpdateCurrents(0, numLines[0] - 1);
         DoPostCurrentUpdates();
         Apply2Current();
 
         ++numTS;
+
+        if (iter == iterTS - 1) {
+	        checkCuda(cudaMemcpyAsync(curr_ptr->data(), curr_ptr->device_data(), curr_ptr->bytes(), cudaMemcpyHostToDevice));
+        }
     }
-    volt_ptr->unload();
-    curr_ptr->unload();
+
+
     m_host_data_locked = false;
     m_volt_updated = 0;
     m_curr_updated = 0;
