@@ -232,7 +232,7 @@ static void load_data_pair(FDTD_FLOAT *dest, const FDTD_FLOAT *a, const FDTD_FLO
 
     checkCuda(cudaMemcpy(dest, buf, num_cells * 6 * sizeof(FDTD_FLOAT), cudaMemcpyHostToDevice));
 
-    cudaFree(buf);
+    cudaFreeHost(buf);
 
 }
 
