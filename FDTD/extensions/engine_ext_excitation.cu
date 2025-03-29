@@ -56,8 +56,7 @@ void Engine_Ext_Excitation::Apply2VoltagesCuda(Engine_cuda *eng)
         p, 
         N
     );
-    checkCuda(cudaDeviceSynchronize());
-    checkCudaErrors();
+    //checkCudaErrors();
 }
 
 
@@ -85,8 +84,7 @@ void Engine_Ext_Excitation::Apply2CurrentCuda(Engine_cuda *eng)
         N
     );
 
-    checkCuda(cudaDeviceSynchronize());
-    checkCudaErrors();
+    //checkCudaErrors();
 }
 
 

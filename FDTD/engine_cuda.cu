@@ -316,8 +316,7 @@ void Engine_cuda::UpdateVoltages(unsigned int startX, unsigned int numX) {
     updateVoltagesKernel<<< blocks, THREADS >>>(volt_ptr->device_data(), (const FDTD_FLOAT*)curr_ptr->device_data(), 
             d_op_vv_vi, N, dim);
 
-    checkCudaErrors();
-    checkCuda(cudaDeviceSynchronize());
+    //checkCudaErrors();
 }
 
 void Engine_cuda::UpdateCurrents(unsigned int startX, unsigned int numX) {
@@ -331,8 +330,7 @@ void Engine_cuda::UpdateCurrents(unsigned int startX, unsigned int numX) {
 
     updateCurrentsKernel<<< blocks, THREADS >>>(curr_ptr->device_data(), (const FDTD_FLOAT*)volt_ptr->device_data(), 
             d_op_ii_iv, N, dim);
-    checkCudaErrors();
-    checkCuda(cudaDeviceSynchronize());
+    //checkCudaErrors();
 }
 
 void Engine_cuda::AddVolt(unsigned int n, const unsigned int pos[3], FDTD_FLOAT value)
@@ -340,8 +338,7 @@ void Engine_cuda::AddVolt(unsigned int n, const unsigned int pos[3], FDTD_FLOAT 
     int cell = flat_index(pos[0], pos[1], pos[2], numLines);
     addInKernel<<< 1, 1>>>(volt_ptr->device_data(), cell, n, value);
 
-    checkCudaErrors();
-    checkCuda(cudaDeviceSynchronize());
+    //checkCudaErrors();
 }
 
 void Engine_cuda::AddCurr(unsigned int n, const unsigned int pos[3], FDTD_FLOAT value)
@@ -349,8 +346,7 @@ void Engine_cuda::AddCurr(unsigned int n, const unsigned int pos[3], FDTD_FLOAT 
     int cell = flat_index(pos[0], pos[1], pos[2], numLines);
     addInKernel<<<1, 1>>>(curr_ptr->device_data(), cell, n, value);
 
-    checkCudaErrors();
-    checkCuda(cudaDeviceSynchronize());
+    //checkCudaErrors();
 }
 
 
