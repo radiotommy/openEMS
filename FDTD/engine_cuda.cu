@@ -268,21 +268,16 @@ void Engine_cuda::Init() {
     m_dim = dim3(numLines[0], numLines[1], numLines[2]);
 
 	numTS = 0;
-	volt_ptr = new ArrayLib::ArrayNIJK<FDTD_FLOAT>("volt", numLines);
-	curr_ptr = new ArrayLib::ArrayNIJK<FDTD_FLOAT>("curr", numLines);
+    int num_cells = numLines[0] * numLines[1] * numLines[2];
 
-    volt_ptr->load();
-    curr_ptr->load();
+	volt_array = new CudaHelper::Array<FDTD_FLOAT>(num_cells * 3);
+	curr_array = new CudaHelper::Array<FDTD_FLOAT>(num_cells * 3);
+
+    volt_array->clear();
+    curr_array->clear();
 
     // Allocate GPU memory
-    Op->vv_ptr->load();
-    Op->vi_ptr->load();
-    Op->iv_ptr->load();
-    Op->ii_ptr->load();
-
     checkCuda(cudaMalloc(&d_energy_sum, sizeof(double)));
-
-    int num_cells = numLines[0] * numLines[1] * numLines[2];
     checkCuda(cudaMalloc(&d_op_vv_vi, 6 * num_cells * sizeof(FDTD_FLOAT)));
     checkCuda(cudaMalloc(&d_op_ii_iv, 6 * num_cells * sizeof(FDTD_FLOAT)));
 
@@ -294,10 +289,8 @@ void Engine_cuda::Init() {
 }
 
 void Engine_cuda::Reset() {
-	delete volt_ptr;
-    volt_ptr = NULL;
-	delete curr_ptr;
-    curr_ptr = NULL;
+    if (volt_array)     delete volt_array;
+    if (curr_array)     delete curr_array;
 
     // Free GPU memory
     if (d_energy_sum)   checkCuda(cudaFree(d_energy_sum));
@@ -313,7 +306,7 @@ void Engine_cuda::UpdateVoltages(unsigned int startX, unsigned int numX) {
     // Launch kernel
     int blocks = (N  + THREADS - 1) / THREADS;
     dim3 dim(numLines[0], numLines[1], numLines[2]);
-    updateVoltagesKernel<<< blocks, THREADS >>>(volt_ptr->device_data(), (const FDTD_FLOAT*)curr_ptr->device_data(), 
+    updateVoltagesKernel<<< blocks, THREADS >>>(volt_array->device_data(), (const FDTD_FLOAT*)curr_array->device_data(), 
             d_op_vv_vi, N, dim);
 
     //checkCudaErrors();
@@ -328,7 +321,7 @@ void Engine_cuda::UpdateCurrents(unsigned int startX, unsigned int numX) {
     int blocks = (N  + THREADS - 1) / THREADS;
     dim3 dim(numLines[0], numLines[1], numLines[2]);
 
-    updateCurrentsKernel<<< blocks, THREADS >>>(curr_ptr->device_data(), (const FDTD_FLOAT*)volt_ptr->device_data(), 
+    updateCurrentsKernel<<< blocks, THREADS >>>(curr_array->device_data(), (const FDTD_FLOAT*)volt_array->device_data(), 
             d_op_ii_iv, N, dim);
     //checkCudaErrors();
 }
@@ -336,7 +329,7 @@ void Engine_cuda::UpdateCurrents(unsigned int startX, unsigned int numX) {
 void Engine_cuda::AddVolt(unsigned int n, const unsigned int pos[3], FDTD_FLOAT value)
 {
     int cell = flat_index(pos[0], pos[1], pos[2], numLines);
-    addInKernel<<< 1, 1>>>(volt_ptr->device_data(), cell, n, value);
+    addInKernel<<< 1, 1>>>(volt_array->device_data(), cell, n, value);
 
     //checkCudaErrors();
 }
@@ -344,7 +337,7 @@ void Engine_cuda::AddVolt(unsigned int n, const unsigned int pos[3], FDTD_FLOAT 
 void Engine_cuda::AddCurr(unsigned int n, const unsigned int pos[3], FDTD_FLOAT value)
 {
     int cell = flat_index(pos[0], pos[1], pos[2], numLines);
-    addInKernel<<<1, 1>>>(curr_ptr->device_data(), cell, n, value);
+    addInKernel<<<1, 1>>>(curr_array->device_data(), cell, n, value);
 
     //checkCudaErrors();
 }
@@ -355,7 +348,7 @@ double Engine_cuda::CalcFastEnergy()
     if (m_volt_updated || m_curr_updated) {
         printf("volt & curr updated: %d,%d\n", m_volt_updated, m_curr_updated);
     }
-    calcFastEnergyKernel<<<1, THREADS>>>(volt_ptr->device_data(), curr_ptr->device_data(), d_energy_sum, m_dim);
+    calcFastEnergyKernel<<<1, THREADS>>>(volt_array->device_data(), curr_array->device_data(), d_energy_sum, m_dim);
 
     checkCudaErrors();
     checkCuda(cudaDeviceSynchronize());
@@ -378,10 +371,12 @@ bool Engine_cuda::IterateTS(unsigned int iterTS) {
     m_curr_updated_by_host = 1;
 
     if (m_volt_updated) {
-        volt_ptr->load();
+        printf("load volt to cuda\n");
+        volt_array->load_to_device();
     }
     if (m_curr_updated) {
-        curr_ptr->load();
+        printf("load curr to cuda\n");
+        curr_array->load_to_device();
     }
     m_host_data_locked = true;
 
@@ -395,7 +390,7 @@ bool Engine_cuda::IterateTS(unsigned int iterTS) {
         Apply2Voltages();
 
         if (iter == iterTS - 1) {
-	        checkCuda(cudaMemcpyAsync(volt_ptr->data(), volt_ptr->device_data(), volt_ptr->bytes(), cudaMemcpyHostToDevice));
+            volt_array->load_to_host_async();
         }
 
         DoPreCurrentUpdates();
@@ -406,7 +401,7 @@ bool Engine_cuda::IterateTS(unsigned int iterTS) {
         ++numTS;
 
         if (iter == iterTS - 1) {
-	        checkCuda(cudaMemcpyAsync(curr_ptr->data(), curr_ptr->device_data(), curr_ptr->bytes(), cudaMemcpyHostToDevice));
+            curr_array->load_to_host_async();
         }
     }
 

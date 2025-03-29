@@ -23,6 +23,8 @@
 #include "FDTD/operator.h"
 #include "engine_extension_dispatcher.h"
 
+#include "tools/cuda/array.h"
+
 struct upml_block_t {
 	dim3 start;
 	dim3 lines;
@@ -80,8 +82,15 @@ private:
     int *m_num_of_cells_in_block;
     int m_max_num_cells_in_block;
 
-    std::vector<ArrayLib::ArrayNIJK<FDTD_FLOAT> *> m_volt_fluxes;
-    std::vector<ArrayLib::ArrayNIJK<FDTD_FLOAT> *> m_curr_fluxes;
+    std::vector<CudaHelper::Array<FDTD_FLOAT> *> m_volt_fluxes;
+    std::vector<CudaHelper::Array<FDTD_FLOAT> *> m_curr_fluxes;
+
+    CudaHelper::Array<FDTD_FLOAT> *m_op_vv;
+    CudaHelper::Array<FDTD_FLOAT> *m_op_vvfn;
+    CudaHelper::Array<FDTD_FLOAT> *m_op_vvfo;
+    CudaHelper::Array<FDTD_FLOAT> *m_op_ii;
+    CudaHelper::Array<FDTD_FLOAT> *m_op_iifn;
+    CudaHelper::Array<FDTD_FLOAT> *m_op_iifo;
 
 };
 

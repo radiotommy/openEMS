@@ -23,10 +23,6 @@
 #include "subscript.h"
 #include "allocator.h"
 
-#if WITH_CUDA
-#include "hemi/hemi.h"
-#endif
-
 // ArrayBase is a base class of which 2D, 3D and 4D arrays are derived from.
 // this reduces code duplication and allows minimum code in derived classes.
 //
@@ -72,9 +68,6 @@ protected:
 	Index m_size, m_bytes;
 
 	T* __restrict m_ptr = NULL;
-#if WITH_CUDA
-	T* m_device_ptr = NULL;
-#endif
 
 	// 2-phase initialization
 	ArrayBase() {}
@@ -128,32 +121,6 @@ public:
 	// return raw pointer to underlying data
 	T*                          data()              const { return m_ptr;      }
 	T&                          data(IndexType n)   const { return m_ptr[n];   }
-
-
-
-#if WITH_CUDA
-	int load() {
-		cudaError_t result;
-		if (m_device_ptr == NULL) {
-			result = checkCuda(cudaMalloc(&m_device_ptr, this->bytes()));
-			if (result != cudaSuccess) {
-				return -1;
-			}
-		}
-		result = checkCuda(cudaMemcpy(m_device_ptr, this->data(), this->bytes(), cudaMemcpyHostToDevice));
-		return (result == cudaSuccess) ? 0 : -1;
-	}
-
-	int unload() {
-		if (m_device_ptr == NULL)	return -1;
-		cudaError_t result = checkCuda(cudaMemcpy(this->data(), m_device_ptr, this->bytes(), cudaMemcpyHostToDevice));
-		return (result == cudaSuccess) ? 0 : -1;
-
-	}
-	T*	device_data() {
-		return m_device_ptr;
-	}
-#endif
 };
 
 #endif // ARRAYLIB_ARRAY_BASE_H

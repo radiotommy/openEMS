@@ -34,40 +34,52 @@ void Engine_Ext_United_UPML::SetEngine(Engine* eng)
         upml_block_t block;
         int blk_size = op->m_numLines[0] * op->m_numLines[1] * op->m_numLines[2];
 
-
         m_num_of_cells_in_block[i] = blk_size;
         if (blk_size > m_max_num_cells_in_block) {
             m_max_num_cells_in_block = blk_size;
         }
 
+        // volt and curr flux only needed on device side
+        CudaHelper::Array<FDTD_FLOAT> *volt_flux = new CudaHelper::Array<FDTD_FLOAT>(blk_size * 3, NULL);
+        CudaHelper::Array<FDTD_FLOAT> *curr_flux = new CudaHelper::Array<FDTD_FLOAT>(blk_size * 3, NULL);
 
-        ArrayLib::ArrayNIJK<FDTD_FLOAT> *volt_flux = new ArrayLib::ArrayNIJK<FDTD_FLOAT>("vflux", op->m_numLines);
-        ArrayLib::ArrayNIJK<FDTD_FLOAT> *curr_flux = new ArrayLib::ArrayNIJK<FDTD_FLOAT>("cflow", op->m_numLines);
+        printf("get volt_flux, curr_flux at %p, %p\n", volt_flux->host_data(), curr_flux->host_data());
+        fflush(stdout);
         m_volt_fluxes.push_back(volt_flux);
         m_curr_fluxes.push_back(curr_flux);
 
-        volt_flux->load();
-        curr_flux->load();
+        volt_flux->clear();
+        curr_flux->clear();
 
-        op->vv.load();
-        op->vvfn.load();
-        op->vvfo.load();
+        m_op_vv = new CudaHelper::Array<FDTD_FLOAT>(blk_size * 3, op->vv.data());
+        m_op_vvfn = new CudaHelper::Array<FDTD_FLOAT>(blk_size * 3, op->vvfn.data());
+        m_op_vvfo = new CudaHelper::Array<FDTD_FLOAT>(blk_size * 3, op->vvfo.data());
 
-        op->ii.load();
-        op->iifn.load();
-        op->iifo.load();
+        printf("load op data to device: %p, %p, %p\n", m_op_vv->host_data(), m_op_vvfn->host_data(), m_op_vvfo->host_data());
+        fflush(stdout);
+        m_op_vv->load_to_device();
+        m_op_vvfn->load_to_device();
+        m_op_vvfo->load_to_device();
+
+        m_op_ii = new CudaHelper::Array<FDTD_FLOAT>(blk_size * 3, op->ii.data());
+        m_op_iifn = new CudaHelper::Array<FDTD_FLOAT>(blk_size * 3, op->iifn.data());
+        m_op_iifo = new CudaHelper::Array<FDTD_FLOAT>(blk_size * 3, op->iifo.data());
+
+        m_op_ii->load_to_device();
+        m_op_iifn->load_to_device();
+        m_op_iifo->load_to_device();
 
         block.start = dim3(op->m_StartPos[0], op->m_StartPos[1], op->m_StartPos[2]);
         block.lines = dim3(op->m_numLines[0], op->m_numLines[1], op->m_numLines[2]);
         block.volt_flux = volt_flux->device_data();
         block.curr_flux = curr_flux->device_data();
 
-        block.vv = op->vv.device_data();
-        block.vvfn = op->vvfn.device_data();
-        block.vvfo = op->vvfo.device_data();
-        block.ii = op->ii.device_data();
-        block.iifn = op->iifn.device_data();
-        block.iifo = op->iifo.device_data();
+        block.vv = m_op_vv->device_data();
+        block.vvfn = m_op_vvfn->device_data();
+        block.vvfo = m_op_vvfo->device_data();
+        block.ii = m_op_ii->device_data();
+        block.iifn = m_op_iifn->device_data();
+        block.iifo = m_op_iifo->device_data();
 
         // load all the data point for this block into the device memory
         checkCuda(cudaMemcpy(m_d_blks + i, &block, sizeof(upml_block_t), cudaMemcpyHostToDevice));

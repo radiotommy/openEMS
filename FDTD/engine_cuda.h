@@ -4,6 +4,8 @@
 #include "engine.h"
 #include "operator_cuda.h"
 
+#include "tools/cuda/array.h"
+
 
 class Operator_CUDA;
 
@@ -34,8 +36,8 @@ public:
 	virtual void AddVolt(unsigned int n, const unsigned int pos[3], FDTD_FLOAT value);
 	virtual void AddCurr(unsigned int n, const unsigned int pos[3], FDTD_FLOAT value);
 
-	virtual inline FDTD_FLOAT* GetDeviceVoltData() { return volt_ptr->device_data(); }
-	virtual inline FDTD_FLOAT* GetDeviceCurrData() { return curr_ptr->device_data(); }
+	virtual inline FDTD_FLOAT* GetDeviceVoltData() { return volt_array->device_data(); }
+	virtual inline FDTD_FLOAT* GetDeviceCurrData() { return curr_array->device_data(); }
 	virtual inline dim3 GetDeviceDimData() { return m_dim; }
 
 	//this access functions muss be overloaded by any new engine using a different storage model
@@ -43,8 +45,8 @@ public:
 	inline virtual FDTD_FLOAT GetVolt(unsigned int n, unsigned int x, unsigned int y, unsigned int z) const
 	{
 		assert(!m_host_data_locked);
-		ArrayLib::ArrayNIJK<FDTD_FLOAT>& volt = *volt_ptr;
-		return volt[n][x][y][z];
+		FDTD_FLOAT *volt = volt_array->host_data();
+		return volt[FlatIndex(x, y, z) * 3 + n];
 	}
 
 	inline virtual FDTD_FLOAT GetVolt(unsigned int n, const unsigned int pos[3]) const
@@ -55,8 +57,8 @@ public:
 	inline virtual FDTD_FLOAT GetCurr(unsigned int n, unsigned int x, unsigned int y, unsigned int z) const
 	{
 		assert(!m_host_data_locked);
-		ArrayLib::ArrayNIJK<FDTD_FLOAT>& curr = *curr_ptr;
-		return curr[n][x][y][z];
+
+		return curr_array->host_data()[FlatIndex(x, y, z) * 3 + n];
 	}
 
 	inline virtual FDTD_FLOAT GetCurr(unsigned int n, const unsigned int pos[3]) const
@@ -67,8 +69,7 @@ public:
 	inline virtual void SetVolt(unsigned int n, unsigned int x, unsigned int y, unsigned int z, FDTD_FLOAT val)
 	{
 		assert(!m_host_data_locked);
-		ArrayLib::ArrayNIJK<FDTD_FLOAT>& volt = *volt_ptr;
-		volt[n][x][y][z] = val;
+		volt_array->host_data()[FlatIndex(x, y, z) * 3 + n] = val;
 		m_volt_updated += 1;
 	}
 
@@ -80,9 +81,7 @@ public:
 	inline virtual void SetCurr(unsigned int n, unsigned int x, unsigned int y, unsigned int z, FDTD_FLOAT val)
 	{
 		assert(!m_host_data_locked);
-		ArrayLib::ArrayNIJK<FDTD_FLOAT>& curr = *curr_ptr;
-
-		curr[n][x][y][z] = val;
+		curr_array->host_data()[FlatIndex(x, y, z) * 3 + n] = val;
 		m_curr_updated += 1;
 	}
 
@@ -120,6 +119,10 @@ protected:
 	FDTD_FLOAT *d_op_ii_iv;
 
 private:
+
+	CudaHelper::Array<FDTD_FLOAT> *volt_array;
+	CudaHelper::Array<FDTD_FLOAT> *curr_array;
+
 	int m_volt_updated;
 	uint32_t m_volt_updated_by_host;
 

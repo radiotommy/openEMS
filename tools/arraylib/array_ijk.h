@@ -94,14 +94,8 @@ public:
 	~ArrayIJK()
 	{
 		Base::AllocatorType::free(this->m_ptr, this->m_size);
-
-#if WITH_CUDA
-		if (this->m_device_ptr) {
-			cudaFree(this->m_device_ptr);
-			this->m_device_ptr = NULL;
-		}
 	}
-#endif
+
 };
 
 #endif // ARRAYLIB_ARRAY_IJK_H
