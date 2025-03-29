@@ -112,7 +112,6 @@ protected:
 
 	dim3 m_dim;
 
-	double *d_energy_sum;
 	FDTD_FLOAT *d_fastEnergy;
 
 	FDTD_FLOAT *d_op_vv_vi;
@@ -122,6 +121,7 @@ private:
 
 	CudaHelper::Array<FDTD_FLOAT> *volt_array;
 	CudaHelper::Array<FDTD_FLOAT> *curr_array;
+	CudaHelper::Array<double> *m_energy_sum;
 
 	int m_volt_updated;
 	uint32_t m_volt_updated_by_host;

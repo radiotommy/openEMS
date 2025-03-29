@@ -17,6 +17,8 @@
 #include "hemi/grid_stride_range.h"
 #include "hemi/launch.h"
 
+#include "tools/cuda/check.h"
+
 using namespace std;
 
 
@@ -25,8 +27,6 @@ using namespace std;
 #define flat_index(X, Y, Z, D)     ((X) * D[1] * D[2] + ((Y) * D[2]) + (Z))
 #define THREADS     1024
 
-
-__constant__ int g_dim[3];
 
 
 // Kernel for voltage updates with flat arrays
@@ -270,14 +270,14 @@ void Engine_cuda::Init() {
 	numTS = 0;
     int num_cells = numLines[0] * numLines[1] * numLines[2];
 
+    // Allocate GPU memory
 	volt_array = new CudaHelper::Array<FDTD_FLOAT>(num_cells * 3);
 	curr_array = new CudaHelper::Array<FDTD_FLOAT>(num_cells * 3);
+    m_energy_sum =  new CudaHelper::Array<double>(1);
 
     volt_array->clear();
     curr_array->clear();
 
-    // Allocate GPU memory
-    checkCuda(cudaMalloc(&d_energy_sum, sizeof(double)));
     checkCuda(cudaMalloc(&d_op_vv_vi, 6 * num_cells * sizeof(FDTD_FLOAT)));
     checkCuda(cudaMalloc(&d_op_ii_iv, 6 * num_cells * sizeof(FDTD_FLOAT)));
 
@@ -291,9 +291,7 @@ void Engine_cuda::Init() {
 void Engine_cuda::Reset() {
     if (volt_array)     delete volt_array;
     if (curr_array)     delete curr_array;
-
-    // Free GPU memory
-    if (d_energy_sum)   checkCuda(cudaFree(d_energy_sum));
+    if (m_energy_sum)   delete m_energy_sum;
 
     ClearExtensions();
 }
@@ -348,15 +346,13 @@ double Engine_cuda::CalcFastEnergy()
     if (m_volt_updated || m_curr_updated) {
         printf("volt & curr updated: %d,%d\n", m_volt_updated, m_curr_updated);
     }
-    calcFastEnergyKernel<<<1, THREADS>>>(volt_array->device_data(), curr_array->device_data(), d_energy_sum, m_dim);
+    calcFastEnergyKernel<<<1, THREADS>>>(volt_array->device_data(), curr_array->device_data(), m_energy_sum->device_data(), m_dim);
 
-    checkCudaErrors();
-    checkCuda(cudaDeviceSynchronize());
+    CudaHelper::check_cuda();
+    //checkCuda(cudaDeviceSynchronize());
 
-    double energy_sum;
-    checkCuda(cudaMemcpy(&energy_sum, d_energy_sum, sizeof(energy_sum), cudaMemcpyDeviceToHost));
-
-    return energy_sum;
+    m_energy_sum->load_to_host();
+    return m_energy_sum->host_data()[0];
 }
 
 // Other methods (InitExtensions, SortExtensionByPriority, etc.) remain unchanged unless extensions need CUDA support
@@ -372,15 +368,13 @@ bool Engine_cuda::IterateTS(unsigned int iterTS) {
 
     if (m_volt_updated) {
         printf("load volt to cuda\n");
-        volt_array->load_to_device();
+        volt_array->load_to_device_async();
     }
     if (m_curr_updated) {
         printf("load curr to cuda\n");
-        curr_array->load_to_device();
+        curr_array->load_to_device_async();
     }
     m_host_data_locked = true;
-
-
 
     for (unsigned int iter = 0; iter < iterTS; ++iter) {
         DoPreVoltageUpdates();
