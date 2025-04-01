@@ -80,6 +80,11 @@ if (WITH_CUDA)
   find_library(CUDART_LIBRARY cudart ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
   INCLUDE_DIRECTORIES(${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
   INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/hemi)
+
+  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_options(myapp PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-lineinfo>)
+  endif()
+
 endif()
 
 # Set locations of extra CMake modules
