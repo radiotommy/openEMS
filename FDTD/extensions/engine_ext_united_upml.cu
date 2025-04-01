@@ -43,8 +43,6 @@ void Engine_Ext_United_UPML::SetEngine(Engine* eng)
         CudaHelper::Array<FDTD_FLOAT> *volt_flux = new CudaHelper::Array<FDTD_FLOAT>(blk_size * 3, NULL);
         CudaHelper::Array<FDTD_FLOAT> *curr_flux = new CudaHelper::Array<FDTD_FLOAT>(blk_size * 3, NULL);
 
-        printf("get volt_flux, curr_flux at %p, %p\n", volt_flux->host_data(), curr_flux->host_data());
-        fflush(stdout);
         m_volt_fluxes.push_back(volt_flux);
         m_curr_fluxes.push_back(curr_flux);
 
@@ -55,8 +53,6 @@ void Engine_Ext_United_UPML::SetEngine(Engine* eng)
         m_op_vvfn = new CudaHelper::Array<FDTD_FLOAT>(blk_size * 3, op->vvfn.data());
         m_op_vvfo = new CudaHelper::Array<FDTD_FLOAT>(blk_size * 3, op->vvfo.data());
 
-        printf("load op data to device: %p, %p, %p\n", m_op_vv->host_data(), m_op_vvfn->host_data(), m_op_vvfo->host_data());
-        fflush(stdout);
         m_op_vv->load_to_device();
         m_op_vvfn->load_to_device();
         m_op_vvfo->load_to_device();
