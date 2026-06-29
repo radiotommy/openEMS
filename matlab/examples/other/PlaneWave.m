@@ -21,10 +21,7 @@ openEMS_opts = [openEMS_opts ' --engine=fastest'];
 Sim_Path = 'tmp';
 Sim_CSX = 'plane_wave.xml';
 
-if (exist(Sim_Path,'dir'))
-    rmdir(Sim_Path,'s');
-end
-mkdir(Sim_Path);
+CleanupSimPath(Sim_Path);
 
 %% setup FDTD parameter & excitation function %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 FDTD = InitFDTD(5000,1e-5,'OverSampling',10);

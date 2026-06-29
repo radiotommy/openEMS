@@ -186,8 +186,7 @@ CSX = DefineRectGrid( CSX, unit, mesh );
 Sim_Path = ['tmp_' mfilename];
 Sim_CSX = [mfilename '.xml'];
 
-[status, message, messageid] = rmdir( Sim_Path, 's' ); % clear previous directory
-[status, message, messageid] = mkdir( Sim_Path ); % create empty simulation folder
+CleanupSimPath(Sim_Path);
 
 %% write openEMS compatible xml-file
 WriteOpenEMS( [Sim_Path '/' Sim_CSX], FDTD, CSX );

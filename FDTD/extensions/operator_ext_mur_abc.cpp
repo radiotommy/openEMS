@@ -18,9 +18,10 @@
 #include "operator_ext_mur_abc.h"
 #include "engine_ext_mur_abc.h"
 
-#include "tools/array_ops.h"
-
 #include "CSPropMaterial.h"
+
+using std::cerr;
+using std::endl;
 
 Operator_Ext_Mur_ABC::Operator_Ext_Mur_ABC(Operator* op) : Operator_Extension(op)
 {
@@ -40,8 +41,6 @@ Operator_Ext_Mur_ABC::Operator_Ext_Mur_ABC(Operator* op, Operator_Ext_Mur_ABC* o
 
 Operator_Extension* Operator_Ext_Mur_ABC::Clone(Operator* op)
 {
-	if (dynamic_cast<Operator_Ext_Mur_ABC*>(this)==NULL)
-		return NULL;
 	return new Operator_Ext_Mur_ABC(op, this);
 }
 
@@ -136,7 +135,11 @@ bool Operator_Ext_Mur_ABC::BuildExtension()
 	for (pos[m_nyP]=0; pos[m_nyP]<m_numLines[0]; ++pos[m_nyP])
 	{
 		posBB[m_nyP]=pos[m_nyP];
-		vector<CSPrimitives*> vPrims = m_Op->GetPrimitivesBoundBox(posBB[0], posBB[1], posBB[2], CSProperties::MATERIAL);
+		std::vector<CSPrimitives*> vPrims = m_Op->GetPrimitivesBoundBox(
+			posBB[0], posBB[1], posBB[2],
+			CSProperties::MATERIAL
+		);
+
 		coord[m_nyP] = m_Op->GetDiscLine(m_nyP,pos[m_nyP]);
 		for (pos[m_nyPP]=0; pos[m_nyPP]<m_numLines[1]; ++pos[m_nyPP])
 		{
@@ -153,8 +156,8 @@ bool Operator_Ext_Mur_ABC::BuildExtension()
 				if (m_v_phase>0.0)
 					c0t = m_v_phase * dT;
 				else
-					c0t = __C0__ * dT / sqrt(eps*mue);
-				m_Mur_Coeff_nyP[pos[m_nyP]][pos[m_nyPP]] = (c0t - delta) / (c0t + delta);
+					c0t = C0 * dT / sqrt(eps*mue);
+				m_Mur_Coeff_nyP(pos[m_nyP], pos[m_nyPP]) = (c0t - delta) / (c0t + delta);
 
 				//nPP
 				eps = mat->GetEpsilonWeighted(m_nyPP,coord);
@@ -162,8 +165,8 @@ bool Operator_Ext_Mur_ABC::BuildExtension()
 				if (m_v_phase>0.0)
 					c0t = m_v_phase * dT;
 				else
-					c0t = __C0__ * dT / sqrt(eps*mue);
-				m_Mur_Coeff_nyPP[pos[m_nyP]][pos[m_nyPP]] = (c0t - delta) / (c0t + delta);
+					c0t = C0 * dT / sqrt(eps*mue);
+				m_Mur_Coeff_nyPP(pos[m_nyP], pos[m_nyPP]) = (c0t - delta) / (c0t + delta);
 
 			}
 			else
@@ -171,14 +174,12 @@ bool Operator_Ext_Mur_ABC::BuildExtension()
 				if (m_v_phase>0.0)
 					c0t = m_v_phase * dT;
 				else
-					c0t = __C0__ / sqrt(m_Op->GetBackgroundEpsR()*m_Op->GetBackgroundMueR()) * dT;
-				m_Mur_Coeff_nyP[pos[m_nyP]][pos[m_nyPP]] = (c0t - delta) / (c0t + delta);
-				m_Mur_Coeff_nyPP[pos[m_nyP]][pos[m_nyPP]] = m_Mur_Coeff_nyP[pos[m_nyP]][pos[m_nyPP]];
+					c0t = C0 / sqrt(m_Op->GetBackgroundEpsR()*m_Op->GetBackgroundMueR()) * dT;
+				m_Mur_Coeff_nyP (pos[m_nyP], pos[m_nyPP]) = (c0t - delta) / (c0t + delta);
+				m_Mur_Coeff_nyPP(pos[m_nyP], pos[m_nyPP]) = m_Mur_Coeff_nyP(pos[m_nyP], pos[m_nyPP]);
 			}
-//			cerr << m_Mur_Coeff_nyP[pos[m_nyP]][pos[m_nyPP]] << " : " << m_Mur_Coeff_nyP[pos[m_nyP]][pos[m_nyPP]] << endl;
 		}
 	}
-//	cerr << "Operator_Ext_Mur_ABC::BuildExtension(): " << m_ny << " @ " << m_LineNr << endl;
 	return true;
 }
 
@@ -189,11 +190,11 @@ Engine_Extension* Operator_Ext_Mur_ABC::CreateEngineExtention(Engine *engine)
 }
 
 
-void Operator_Ext_Mur_ABC::ShowStat(ostream &ostr)  const
+void Operator_Ext_Mur_ABC::ShowStat(std::ostream &ostr)  const
 {
 	Operator_Extension::ShowStat(ostr);
-	string XYZ[3] = {"x","y","z"};
+	std::string XYZ[3] = {"x","y","z"};
 	ostr << " Active direction\t: " << XYZ[m_ny] << " at line: " << m_LineNr << endl;
 	if (m_v_phase>0.0)
-		ostr << " Used phase velocity\t: " << m_v_phase << " (" << m_v_phase/__C0__ << " * c_0)" <<endl;
+		ostr << " Used phase velocity\t: " << m_v_phase << " (" << m_v_phase/C0 << " * c_0)" <<endl;
 }

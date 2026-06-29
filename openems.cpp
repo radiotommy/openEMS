@@ -1,5 +1,5 @@
 /*
-*	Copyright (C) 2010-2015 Thorsten Liebig (Thorsten.Liebig@gmx.de)
+*	Copyright (C) 2010 Thorsten Liebig (Thorsten.Liebig@gmx.de)
 *
 *	This program is free software: you can redistribute it and/or modify
 *	it under the terms of the GNU General Public License as published by
@@ -19,26 +19,32 @@
 #include <iomanip>
 #include <iostream>
 #include <fstream>
-#include "tools/array_ops.h"
 #include "tools/signal.h"
 #include "tools/useful.h"
 #include "FDTD/operator_cylinder.h"
 #include "FDTD/operator_cylindermultigrid.h"
 #include "FDTD/engine_multithread.h"
 #include "FDTD/operator_multithread.h"
+#if WITH_CUDA
 #include "FDTD/operator_cuda.h"
+#include "FDTD/extensions/operator_ext_upml.h"
+#endif
 #include "FDTD/extensions/operator_ext_excitation.h"
 #include "FDTD/extensions/operator_ext_tfsf.h"
 #include "FDTD/extensions/operator_ext_mur_abc.h"
-#include "FDTD/extensions/operator_ext_upml.h"
 #include "FDTD/extensions/operator_ext_lorentzmaterial.h"
 #include "FDTD/extensions/operator_ext_lumpedRLC.h"
 #include "FDTD/extensions/operator_ext_conductingsheet.h"
 #include "FDTD/extensions/operator_ext_steadystate.h"
+#include "FDTD/extensions/operator_ext_absorbing_bc.h"
 #include "FDTD/extensions/engine_ext_steadystate.h"
 #include "FDTD/engine_interface_fdtd.h"
 #include "FDTD/engine_interface_cylindrical_fdtd.h"
+
+#if WITH_CUDA
 #include "FDTD/engine_interface_cuda_fdtd.h"
+#endif
+
 #include "Common/processvoltage.h"
 #include "Common/processcurrent.h"
 #include "Common/processfieldprobe.h"
@@ -75,16 +81,12 @@ openEMS::openEMS()
 	Eng_Ext_SSD=NULL;
 	m_CSX=NULL;
 	PA=NULL;
-	CylinderCoords = false;
 	Enable_Dumps = true;
 	DebugMat = false;
 	DebugOp = false;
 	m_debugCSX = false;
 	m_debugBox = m_debugPEC = m_no_simulation = false;
 	m_DumpStats = false;
-	endCrit = 1e-6;
-	m_OverSampling = 4;
-	m_CellConstantMaterial=false;
 
 	m_engine = EngineType_Multithreaded; //default engine type
 	m_engine_numThreads = 0;
@@ -92,17 +94,7 @@ openEMS::openEMS()
 	m_Abort = false;
 	m_Exc = 0;
 
-	m_TS_method=3;
-	m_TS=0;
-	m_TS_fac=1.0;
-	m_maxTime=0.0;
-
-	for (int n=0;n<6;++n)
-	{
-		m_BC_type[n]  = 0;
-		m_PML_size[n] = 8;
-		m_Mur_v_ph[n] = 0;
-	}
+	Reset();
 
 	collectCommandLineArguments();
 }
@@ -127,17 +119,27 @@ void openEMS::Reset()
 	m_Exc=0;
 	delete Eng_Ext_SSD;
 	Eng_Ext_SSD=0;
+
+	CylinderCoords = false;
+	m_CC_MultiGrid.clear();
+	m_CellConstantMaterial=false;
+	endCrit = 1e-6;
+	m_OverSampling = 4;
+
+	m_TS_method=3;
+	m_TS=0;
+	m_TS_fac=1.0;
+	m_maxTime=0.0;
+
+	for (int n=0;n<6;++n)
+	{
+		m_BC_type[n]  = 0;
+		m_PML_size[n] = 8;
+		m_Mur_v_ph[n] = 0;
+	}
 }
 
 void openEMS::collectCommandLineArguments()
-{
-	// register our supported options to g_settings
-	g_settings.appendOptionDesc(optionDesc());
-	g_settings.appendOptionDesc(g_settings.optionDesc());
-}
-
-po::options_description
-openEMS::optionDesc()
 {
 	po::options_description optdesc("Options");
 	optdesc.add_options()
@@ -311,16 +313,20 @@ openEMS::optionDesc()
 				{
 					if (!val) return;
 					cout << "openEMS - dump simulation statistics to '"
-						 << __OPENEMS_RUN_STAT_FILE__ << "' and '"
-						 << __OPENEMS_STAT_FILE__ << "'" << endl;
+						 << OPENEMS_RUN_STAT_FILE << "' and '"
+						 << OPENEMS_STAT_FILE << "'" << endl;
 					m_DumpStats = true;
 				}
 			),
-			"dump simulation statistics to '" __OPENEMS_RUN_STAT_FILE__
-			"' and '" __OPENEMS_STAT_FILE__ "'"
+			"dump simulation statistics to '" OPENEMS_RUN_STAT_FILE
+			"' and '" OPENEMS_STAT_FILE "'"
 		);
 
-	return optdesc;
+	// register our supported options to g_settings
+	// see commands in tools/global.h
+	g_settings.clearOptionDesc();
+	g_settings.appendOptionDesc(optdesc);
+	g_settings.appendOptionDesc(g_settings.optionDesc());
 }
 
 void openEMS::showUsage()
@@ -334,12 +340,13 @@ void openEMS::showUsage()
 // used by Python binding when running as a shared library
 void openEMS::SetLibraryArguments(std::vector<std::string> allOptions)
 {
+	collectCommandLineArguments();
 	g_settings.parseLibraryArguments(allOptions);
 }
 
 void openEMS::SetNumberOfThreads(int val)
 {
-	if ((val<0) || (val>boost::thread::hardware_concurrency()))
+	if ((val<0) || (val>(int)boost::thread::hardware_concurrency()))
 		val = boost::thread::hardware_concurrency();
 	m_engine_numThreads = val;
 }
@@ -385,7 +392,7 @@ void openEMS::WelcomeScreen()
 
 	cout << " ---------------------------------------------------------------------- " << endl;
 	cout << " | openEMS " << bits << " -- version " << GIT_VERSION << endl;
-	cout << " | (C) 2010-2023 Thorsten Liebig <thorsten.liebig@gmx.de>  GPL license"   << endl;
+	cout << " | (C) 2010-2026 Thorsten Liebig <thorsten.liebig@gmx.de>  GPL license"   << endl;
 	cout << " ---------------------------------------------------------------------- " << endl;
 	cout << openEMS::GetExtLibsInfo("\t") << endl;
 }
@@ -412,10 +419,48 @@ bool openEMS::SetupBoundaryConditions()
 	}
 
 
+#if WITH_CUDA
 	//create the upml
 	Operator_Ext_UPML::Create_UPML(FDTD_Op, m_BC_type, m_PML_size, string());
+#endif
 
 	return true;
+}
+
+void openEMS::SetupAbsorbingSheets()
+{
+	vector<CSProperties*>	cs_props;
+	cs_props = m_CSX->GetPropertyByType(CSProperties::ABSORBING_BC);
+
+	for(size_t n = 0 ; n < cs_props.size() ; ++n)
+	{
+		CSPropAbsorbingBC * cABCprops = dynamic_cast<CSPropAbsorbingBC*>(cs_props.at(n));
+
+		// Now start iterating through primitives
+		vector<CSPrimitives*> cs_abc_prims = cABCprops->GetAllPrimitives();
+		for (size_t sheetIdx = 0 ; sheetIdx < cs_abc_prims.size() ; ++sheetIdx)
+		{
+
+			// Attempt to initialize operator extension
+			Operator_Ext_Absorbing_BC* op_ext_abc = new Operator_Ext_Absorbing_BC(FDTD_Op);
+
+			CSPrimitives* cPrimitive = cs_abc_prims.at(sheetIdx);
+
+			// Initialize all necessary parameters so the extension operator can be
+			// built later on.
+			if (op_ext_abc->SetInitParams(cPrimitive,cABCprops))
+				// Finally, add the extension
+				FDTD_Op->AddExtension(op_ext_abc);
+			else
+			{
+				cerr << "openEMS::SetupAbsorbingSheets(): Warning: Absorbing sheet #" << sheetIdx << " setup failed.";
+				delete op_ext_abc;
+			}
+
+		}
+
+	}
+
 }
 
 Engine_Interface_FDTD* openEMS::NewEngineInterface(int multigridlevel)
@@ -526,9 +571,16 @@ bool openEMS::SetupProcessing()
 				{
 					ProcessModeMatch* pmm = new ProcessModeMatch(NewEngineInterface());
 					pmm->SetFieldType(pb->GetProbeType()-10);
-					pmm->SetModeFunction(0,pb->GetAttributeValue("ModeFunctionX"));
-					pmm->SetModeFunction(1,pb->GetAttributeValue("ModeFunctionY"));
-					pmm->SetModeFunction(2,pb->GetAttributeValue("ModeFunctionZ"));
+
+					if (!pb->GetModeFile().empty())
+						pmm->SetWeightFile(pb->GetModeFile());
+					else
+					{
+						pmm->SetWeightFunction(0, pb->GetModeFunction(0));
+						pmm->SetWeightFunction(1, pb->GetModeFunction(1));
+						pmm->SetWeightFunction(2, pb->GetModeFunction(2));
+					}
+					pmm->SetWeightOrigin(pb->GetModeOrigin(0), pb->GetModeOrigin(1), pb->GetModeOrigin(2));
 					proc = pmm;
 				}
 				else
@@ -789,7 +841,7 @@ bool openEMS::ParseFDTDSetup(std::string file)
 	if (!doc.LoadFile())
 	{
 		cerr << "openEMS: Error File-Loading failed!!! File: " << file << endl;
-		exit(-1);
+		return false;
 	}
 
 	if (g_settings.GetVerboseLevel()>0)
@@ -798,14 +850,14 @@ bool openEMS::ParseFDTDSetup(std::string file)
 	if (openEMSxml==NULL)
 	{
 		cerr << "Can't read openEMS ... " << endl;
-		exit(-1);
+		return false;
 	}
 	TiXmlElement* FDTD_Opts = openEMSxml->FirstChildElement("FDTD");
 
 	if (FDTD_Opts==NULL)
 	{
 		cerr << "Can't read openEMS FDTD Settings... " << endl;
-		exit(-1);
+		return false;
 	}
 
 	if (g_settings.GetVerboseLevel()>0)
@@ -864,13 +916,8 @@ bool openEMS::Parse_XML_FDTDSetup(TiXmlElement* FDTD_Opts)
 	if (BC==NULL)
 	{
 		cerr << "Can't read openEMS boundary cond Settings... " << endl;
-		exit(-3);
+		return false;
 	}
-
-//	const char* tmp = BC->Attribute("PML_Grading");
-//	string pml_gradFunc;
-//	if (tmp)
-//		pml_gradFunc = string(tmp);
 
 	string bound_names[] = {"xmin","xmax","ymin","ymax","zmin","zmax"};
 	string s_bc;
@@ -927,7 +974,7 @@ bool openEMS::Parse_XML_FDTDSetup(TiXmlElement* FDTD_Opts)
 	m_Excite_Elem->QueryIntAttribute("Type",&ihelp);
 	switch (ihelp)
 	{
-	case Excitation::GaissianPulse:
+	case Excitation::GaussianPulse:
 		m_Excite_Elem->QueryDoubleAttribute("f0",&f0);
 		m_Excite_Elem->QueryDoubleAttribute("fc",&fc);
 		exc->SetupGaussianPulse(f0, fc);
@@ -958,6 +1005,107 @@ bool openEMS::Parse_XML_FDTDSetup(TiXmlElement* FDTD_Opts)
 	if (FDTD_Opts->QueryDoubleAttribute("TimeStepFactor",&dhelp)==TIXML_SUCCESS)
 		this->SetTimeStepFactor(dhelp);
 	return true;
+}
+
+
+bool openEMS::Write2XML(TiXmlNode* rootNode)
+{
+	TiXmlElement main("openEMS");
+
+	TiXmlElement fdtd("FDTD");
+	fdtd.SetAttribute("NumberOfTimesteps", this->NrTS);
+
+	if (this->CylinderCoords)
+	{
+		fdtd.SetAttribute("CylinderCoords", this->CylinderCoords);
+		if (this->m_CC_MultiGrid.size()>0)
+		{
+			string mg = std::to_string(m_CC_MultiGrid.at(0));
+			for (unsigned int n=1;n<m_CC_MultiGrid.size();++n)
+			{
+				mg += "," + std::to_string(m_CC_MultiGrid.at(n));
+			}
+			fdtd.SetAttribute("MultiGrid", mg);
+		}
+	}
+	if (this->m_maxTime>0)
+		fdtd.SetDoubleAttribute("MaxTime", this->m_maxTime);
+	fdtd.SetDoubleAttribute("endCriteria", this->endCrit);
+	fdtd.SetAttribute("OverSampling", this->m_OverSampling);
+	if (this->m_CellConstantMaterial)
+		fdtd.SetAttribute("CellConstantMaterial", this->m_CellConstantMaterial);
+
+
+	TiXmlElement exc("Excitation");
+	exc.SetAttribute("Type", m_Exc->GetExciteType());
+	switch (m_Exc->GetExciteType())
+	{
+	case Excitation::GaussianPulse:
+		exc.SetDoubleAttribute("f0", m_Exc->GetCenterFreq());
+		exc.SetDoubleAttribute("fc", m_Exc->GetCutOffFreq());
+		break;
+	case Excitation::Sinusoidal:  // sinusoidal excite
+		exc.SetDoubleAttribute("f0", m_Exc->GetCenterFreq());
+		break;
+	case Excitation::DiracPulse:
+		fdtd.SetDoubleAttribute("f_max", m_Exc->GetMaxFreq());
+		break;
+	case Excitation::Step:
+		fdtd.SetDoubleAttribute("f_max", m_Exc->GetMaxFreq());
+		break;
+	case Excitation::CustomExcite:
+		exc.SetDoubleAttribute("f0", m_Exc->GetCenterFreq());
+		fdtd.SetDoubleAttribute("f_max", m_Exc->GetMaxFreq());
+		exc.SetAttribute("Function", m_Exc->GetCustomFunction());
+		break;
+	}
+
+	fdtd.SetAttribute("TimeStepMethod", m_TS_method);
+	if (m_TS>0)
+		fdtd.SetDoubleAttribute("TimeStep", m_TS);
+	if (m_TS_fac>1)
+		fdtd.SetDoubleAttribute("TimeStepFactor", m_TS_fac);
+	fdtd.InsertEndChild(exc);
+
+	TiXmlElement BC("BoundaryCond");
+	string bound_names[] = {"xmin","xmax","ymin","ymax","zmin","zmax"};
+	string BC_names[] = {"PEC", "PMC", "MUR", "PML_"};
+	for (int n=0; n<6; ++n)
+	{
+		if (m_BC_type[n]==3)
+			BC.SetAttribute(bound_names[n], "PML_" + std::to_string(m_PML_size[n]));
+		else if ((m_BC_type[n]<3) && (m_BC_type[n]>=0))
+			BC.SetAttribute(bound_names[n], BC_names[m_BC_type[n]]);
+		else
+			BC.SetAttribute(bound_names[n], m_BC_type[n]);
+
+		if (m_Mur_v_ph[n]>0)
+			BC.SetAttribute("MUR_PhaseVelocity_" + bound_names[n], m_Mur_v_ph[n]);
+	}
+	fdtd.InsertEndChild(BC);
+
+	main.InsertEndChild(fdtd);
+	this->m_CSX->Write2XML(&main);
+	rootNode->InsertEndChild(main);
+	return true;
+}
+
+bool openEMS::Write2XML(std::string file)
+{
+	setlocale(LC_NUMERIC, "en_US.UTF-8");
+	TiXmlDocument doc(file);
+	doc.InsertEndChild(TiXmlDeclaration("1.0","UTF-8","yes"));
+
+	if (Write2XML(&doc)==false) return false;
+
+	doc.SaveFile();
+	return doc.SaveFile();
+}
+
+bool openEMS::ReadFromXML(std::string file)
+{
+	this->Reset();
+	return this->ParseFDTDSetup(file);
 }
 
 void openEMS::SetGaussExcite(double f0, double fc)
@@ -1001,6 +1149,11 @@ void openEMS::SetCSX(ContinuousStructure* csx)
 {
 	delete m_CSX;
 	m_CSX = csx;
+}
+
+ContinuousStructure* openEMS::GetCSX() const
+{
+	return m_CSX;
 }
 
 int openEMS::SetupFDTD()
@@ -1119,6 +1272,8 @@ int openEMS::SetupFDTD()
 		FDTD_Op->AddExtension(new Operator_Ext_ConductingSheet(FDTD_Op, m_Exc->GetMaxFreq()));
 	if (m_CSX->GetQtyPropertyType(CSProperties::LUMPED_ELEMENT)>0)
 		FDTD_Op->AddExtension(new Operator_Ext_LumpedRLC(FDTD_Op));
+	if (m_CSX->GetQtyPropertyType(CSProperties::ABSORBING_BC)>0)
+		SetupAbsorbingSheets();
 
 
 	//check all properties to request material storage during operator creation...
@@ -1147,7 +1302,7 @@ int openEMS::SetupFDTD()
 		NrTS = maxTime_TS;
 
 	if (!m_Exc->buildExcitationSignal(NrTS))
-		exit(2);
+		return 2;
 	m_Exc->DumpVoltageExcite("et");
 	m_Exc->DumpCurrentExcite("ht");
 
@@ -1280,8 +1435,6 @@ void openEMS::RunFDTD()
 
 	//add all timesteps to end-crit field processing with max excite amplitude
 	unsigned int maxExcite = FDTD_Op->GetExcitationSignal()->GetMaxExcitationTimestep();
-//	for (unsigned int n=0; n<FDTD_Op->Exc->Volt_Count; ++n)
-//		ProcField->AddStep(FDTD_Op->Exc->Volt_delay[n]+maxExcite);
 	ProcField->AddStep(maxExcite);
 
 	double change=1;
@@ -1297,7 +1450,7 @@ void openEMS::RunFDTD()
 	timeval prevTime= currTime;
 
 	if (m_DumpStats)
-		InitRunStatistics(__OPENEMS_RUN_STAT_FILE__);
+		InitRunStatistics(OPENEMS_RUN_STAT_FILE);
 	//*************** simulate ************//
 
 	PA->PreProcess();
@@ -1317,7 +1470,6 @@ void openEMS::RunFDTD()
 				maxE=currE;
 		}
 
-//		cout << " do " << step << " steps; current: " << eng.GetNumberOfTimesteps() << endl;
 		currTS = FDTD_Eng->GetNumberOfTimesteps();
 		if ((step<0) || (step>(int)(NrTS - currTS))) step=NrTS - currTS;
 
@@ -1352,7 +1504,7 @@ void openEMS::RunFDTD()
 			PA->FlushNext();
 
 			if (m_DumpStats)
-				DumpRunStatistics(__OPENEMS_RUN_STAT_FILE__, t_run, currTS, speed, currE);
+				DumpRunStatistics(OPENEMS_RUN_STAT_FILE, t_run, currTS, speed, currE);
 			FDTD_Eng->NextInterval(speed);
 		}
 	}
@@ -1367,7 +1519,7 @@ void openEMS::RunFDTD()
 	cout << "Speed: " << numCells*(double)FDTD_Eng->GetNumberOfTimesteps()/t_diff*1e-6 << " MCells/s " << endl;
 
 	if (m_DumpStats)
-		DumpStatistics(__OPENEMS_STAT_FILE__, t_diff);
+		DumpStatistics(OPENEMS_STAT_FILE, t_diff);
 
 	//*************** postproc ************//
 	PA->PostProcess();

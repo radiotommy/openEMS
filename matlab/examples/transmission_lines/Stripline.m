@@ -52,8 +52,7 @@ portstop  = [0          ,  SL_width/2, 0];
 Sim_Path = ['tmp_' mfilename];
 Sim_CSX = 'stripline.xml';
 
-[status, message, messageid] = rmdir( Sim_Path, 's' ); % clear previous directory
-[status, message, messageid] = mkdir( Sim_Path ); % create empty simulation folder
+CleanupSimPath(Sim_Path);
 
 WriteOpenEMS( [Sim_Path '/' Sim_CSX], FDTD, CSX );
 CSXGeomPlot( [Sim_Path '/' Sim_CSX] );

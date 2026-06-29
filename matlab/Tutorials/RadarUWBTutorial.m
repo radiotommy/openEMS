@@ -168,8 +168,7 @@ FDTD = SetBoundaryCond(FDTD, BC );
 
 
 % remove old data, show structure, calculate new data
-[status, message, messageid] = rmdir( Sim_Path, 's' ); % clear previous directory
-[status, message, messageid] = mkdir( Sim_Path ); % create empty simulation folder
+CleanupSimPath(Sim_Path);
 
 % write the data to the working directory
 WriteOpenEMS([Sim_Path '/' Sim_CSX], FDTD, CSX);

@@ -37,7 +37,7 @@ CSX = AddDump(CSX,'Et','DumpMode',0);
 CSX = AddBox(CSX,'Et',0,[-10 0 -10],[10 0 30]);
 
 % remove old simulation results (if exist)
-rmdir('tmp','s');mkdir('tmp');
+CleanupSimPath('tmp');
 
 % write openEMS xml data file
 WriteOpenEMS('tmp/tmp.xml',FDTD,CSX);

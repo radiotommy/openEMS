@@ -34,14 +34,14 @@ else % assume windows
     openEMS_bin = searchBinary('openEMS.exe', [dir filesep '..' filesep '..' filesep]);
 end
 
-command = [openEMS_bin ' ' opts];
+command = ['"' openEMS_bin '"' ' ' opts];
 
 if ~silent
     if (isunix && nargin>1)
-        command = [command ' 2>&1 | tee ' logfile];
+        command = [command ' 2>&1 | tee "' logfile '"'];
     end
 else
-    command = [command ' > ' logfile ' 2>&1'];
+    command = [command ' > "' logfile '" 2>&1'];
 end
 
 

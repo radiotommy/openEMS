@@ -25,7 +25,7 @@
 class Excitation
 {
 public:
-	enum ExciteTypes {UNDEFINED=-1, GaissianPulse=0, Sinusoidal=1, DiracPulse=2, Step=3, CustomExcite=10};
+	enum ExciteTypes {UNDEFINED=-1, GaussianPulse=0, Sinusoidal=1, DiracPulse=2, Step=3, CustomExcite=10};
 	Excitation();
 	virtual ~Excitation();
 
@@ -56,13 +56,13 @@ public:
 	void DumpCurrentExcite(std::string filename);
 
 	//! Get the used timestep
-	double GetTimestep() const {return dT;}
+	double GetTimestep() const {return m_dT;}
 
 	//! Get the type of excitation
 	int GetExciteType() const {return m_Excit_Type;}
 
 	//! Get the length of the excitation signal
-	unsigned int GetLength() const {return Length;}
+	unsigned int GetLength() const {return m_length;}
 
 	//! Get the max frequency excited by this signal
 	double GetMaxFrequency() const {return m_f_max;}
@@ -73,19 +73,21 @@ public:
 	//! Get the signal period, 0 if not a periodical signal
 	double GetSignalPeriod() const {return m_SignalPeriod;}
 
-	FDTD_FLOAT* GetVoltageSignal() const {return Signal_volt;}
-	FDTD_FLOAT* GetCurrentSignal() const {return Signal_curr;}
+	std::string GetCustomFunction() const {return m_CustomExc_Str;}
+
+	FDTD_FLOAT* GetVoltageSignal() const {return m_signal_volt;}
+	FDTD_FLOAT* GetCurrentSignal() const {return m_signal_curr;}
 
 protected:
-	double dT;
+	double m_dT;
 	unsigned int m_nyquistTS;
 	double m_SignalPeriod;
 	ExciteTypes m_Excit_Type;
 
 	//Excitation time-signal
-	unsigned int Length;
-	FDTD_FLOAT* Signal_volt;
-	FDTD_FLOAT* Signal_curr;
+	unsigned int m_length;
+	FDTD_FLOAT* m_signal_volt;
+	FDTD_FLOAT* m_signal_curr;
 
 	// center frequency
 	double m_f0;

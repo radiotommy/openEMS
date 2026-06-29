@@ -65,8 +65,7 @@ CSX = AddBox(CSX, 'PEC', 999, [-SL_length/2 -10*SL_width SL_height],[+SL_length/
 Sim_Path = ['tmp_' mfilename];
 Sim_CSX = 'stripline.xml';
 
-[status, message, messageid] = rmdir( Sim_Path, 's' ); % clear previous directory
-[status, message, messageid] = mkdir( Sim_Path ); % create empty simulation folder
+CleanupSimPath(Sim_Path);
 
 WriteOpenEMS( [Sim_Path '/' Sim_CSX], FDTD, CSX );
 CSXGeomPlot( [Sim_Path '/' Sim_CSX] );

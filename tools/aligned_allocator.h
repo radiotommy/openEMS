@@ -15,6 +15,9 @@
 *	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef ALIGNED_ALLOCATOR_H
+#define ALIGNED_ALLOCATOR_H
+
 // based on http://blogs.msdn.com/b/vcblog/archive/2008/08/28/the-aligned_allocator.aspx
 // from Stephan T. Lavavej
 
@@ -25,7 +28,7 @@
 #include <stdexcept> // Required for std::length_error
 
 
-#ifdef WIN32
+#ifdef _WIN32
 #define __MSVCRT_VERSION__ 0x0700
 #include <malloc.h>
 #define MEMALIGN( array, alignment, size ) !(*array = _aligned_malloc( size, alignment ))
@@ -171,3 +174,5 @@ template <typename T> void aligned_allocator<T>::destroy(T * const p) const
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
+
+#endif // ALIGNED_ALLOCATOR_H

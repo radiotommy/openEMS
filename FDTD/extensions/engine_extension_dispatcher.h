@@ -21,7 +21,9 @@
 
 #include "FDTD/engine.h"
 #include "FDTD/engine_sse.h"
+#if WITH_CUDA
 #include "FDTD/engine_cuda.h"
+#endif
 
 // In openEMS, all extensions are subclasses from the abstract Engine_Extension
 // to implement features like Engine_Extension::Apply2Voltages(). When an

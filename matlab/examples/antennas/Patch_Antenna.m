@@ -50,8 +50,7 @@ SimBox = [100 100 25];
 Sim_Path = 'tmp';
 Sim_CSX = 'patch_ant.xml';
 if (postprocessing_only==0)
-    [status, message, messageid] = rmdir( Sim_Path, 's' ); % clear previous directory
-    [status, message, messageid] = mkdir( Sim_Path ); % create empty simulation folder
+    CleanupSimPath(Sim_Path);
 end
 
 %% setup FDTD parameter & excitation function

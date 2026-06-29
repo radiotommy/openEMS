@@ -46,10 +46,7 @@ else
 end
 Sim_CSX = 'coax.xml';
 
-if (exist(Sim_Path,'dir'))
-    rmdir(Sim_Path,'s');
-end
-mkdir(Sim_Path);
+CleanupSimPath(Sim_Path);
 
 %setup FDTD parameter
 if (def_refSimu>0)

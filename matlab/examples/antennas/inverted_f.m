@@ -137,10 +137,7 @@ stop  = [mesh.x(end-3) mesh.y(end-3) mesh.z(end-3)];
 Sim_Path = 'tmp_IFA';
 Sim_CSX = 'IFA.xml';
 
-try confirm_recursive_rmdir(false,'local'); end
- 
-[status, message, messageid] = rmdir( Sim_Path, 's' ); % clear previous directory
-[status, message, messageid] = mkdir( Sim_Path ); % create empty simulation folder
+CleanupSimPath(Sim_Path);
 
 %% write openEMS compatible xml-file
 WriteOpenEMS( [Sim_Path '/' Sim_CSX], FDTD, CSX );

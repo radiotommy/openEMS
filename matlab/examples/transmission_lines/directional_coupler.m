@@ -156,10 +156,7 @@ BC = {'MUR' 'MUR' 'MUR' 'MUR' 'MUR' 'MUR'}; % faster
 FDTD = SetBoundaryCond( FDTD, BC );
 
 %% Write openEMS compatible xml-file
-if runSimulation
-    [dummy,dummy,dummy] = rmdir(Sim_Path,'s');
-end
-[dummy,dummy,dummy] = mkdir(Sim_Path);
+CleanupSimPath(Sim_Path);
 WriteOpenEMS([Sim_Path '/' Sim_CSX],FDTD,CSX);
 
 if showStructure

@@ -35,17 +35,12 @@ template <typename T, typename IndexType>
 class ArrayLib::ArrayIJK :
 	public ArrayBase<ArrayIJK<T, IndexType>, T, 3, IndexType>
 {
-private:
-	std::array<IndexType, 3> m_stride;
-
 public:
 	using Base = ArrayBase<ArrayIJK<T, IndexType>, T, 3, IndexType>;
 	using Base::operator();
 
 	// 2-phase initialization: user declares a dummy array object first,
-	// and calls Init() later. Ugly but needed because openEMS's FDTD
-	// engine itself uses the 2-phase initialization pattern, we can't
-	// determine simulation domain size in the constructor.
+	// and calls Init() later.
 	ArrayIJK() {}
 
 	void Init(std::string name, std::array<IndexType, 3> extent)
@@ -61,6 +56,7 @@ public:
 		this->m_extent = extent;
 		this->m_stride[0] = extent[1] * extent[2];
 		this->m_stride[1] = extent[2];
+		this->m_stride[2] = 1;
 	}
 
 	void Init(std::string name, IndexType extent[3])
@@ -81,21 +77,15 @@ public:
 
 	IndexType linearIndex(std::array<IndexType, 3> tupleIndex) const
 	{
-		return m_stride[0] * tupleIndex[0] +
-		       m_stride[1] * tupleIndex[1] +
-		                     tupleIndex[2];
+		return  this->m_stride[0] * tupleIndex[0] +
+		        this->m_stride[1] * tupleIndex[1] +
+		        this->m_stride[2] * tupleIndex[2];
 	}
 
 	T& operator() (IndexType i, IndexType j, IndexType k) const
 	{
 		return this->m_ptr[linearIndex({i, j, k})];
 	}
-
-	~ArrayIJK()
-	{
-		Base::AllocatorType::free(this->m_ptr, this->m_size);
-	}
-
 };
 
 #endif // ARRAYLIB_ARRAY_IJK_H

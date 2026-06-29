@@ -22,6 +22,10 @@
 #include "CSPrimBox.h"
 #include "CSPropExcitation.h"
 
+using std::cout;
+using std::cerr;
+using std::endl;
+
 Operator_Ext_TFSF::Operator_Ext_TFSF(Operator* op) : Operator_Extension(op)
 {
 	Init();
@@ -47,7 +51,7 @@ void Operator_Ext_TFSF::Init()
 			}
 
 	m_Frequency = 0.0;
-	m_PhVel = __C0__;
+	m_PhVel = C0;
 	Operator_Extension::Init();
 }
 
@@ -91,7 +95,7 @@ bool Operator_Ext_TFSF::BuildExtension()
 	Reset();
 	ContinuousStructure* CSX = m_Op->GetGeometryCSX();
 
-	vector<CSProperties*> vec_prop = CSX->GetPropertyByType(CSProperties::EXCITATION);
+	std::vector<CSProperties*> vec_prop = CSX->GetPropertyByType(CSProperties::EXCITATION);
 
 	if (vec_prop.size()==0)
 	{
@@ -101,7 +105,7 @@ bool Operator_Ext_TFSF::BuildExtension()
 	}
 
 	double ref_index = sqrt(m_Op->GetBackgroundEpsR()*m_Op->GetBackgroundMueR());
-	m_PhVel = __C0__/ref_index;
+	m_PhVel = C0/ref_index;
 	CSPropExcitation* elec=NULL;
 	CSProperties* prop=NULL;
 	CSPrimitives* prim=NULL;
@@ -155,14 +159,14 @@ bool Operator_Ext_TFSF::BuildExtension()
 //		if (m_Frequency<=0)
 //			m_Frequency = m_Op->GetExcitationSignal()->GetFrequencyOfInterest();
 		if (m_Frequency<=0)
-			m_PhVel=__C0__/ref_index;
+			m_PhVel=C0/ref_index;
 		else
 			m_PhVel=m_Op->CalcNumericPhaseVelocity(m_Start,m_Stop,m_PropDir,m_Frequency);
 
-		if ((m_PhVel<0) || (m_PhVel>__C0__/ref_index) || std::isnan(m_PhVel))
+		if ((m_PhVel<0) || (m_PhVel>C0/ref_index) || std::isnan(m_PhVel))
 		{
 			cerr << "Operator_Ext_TFSF::BuildExtension: Warning, invalid phase velocity found, resetting to c0! " << endl;
-			m_PhVel = __C0__/ref_index;
+			m_PhVel = C0/ref_index;
 		}
 
 		double origin[3];
@@ -216,7 +220,7 @@ bool Operator_Ext_TFSF::BuildExtension()
 			nP = (n+1)%3;
 			nPP = (n+2)%3;
 			m_H_Amp[n] = m_PropDir[nP]*m_E_Amp[nPP] - m_PropDir[nPP]*m_E_Amp[nP];
-			m_H_Amp[n] /= __Z0__*sqrt(m_Op->GetBackgroundMueR()/m_Op->GetBackgroundEpsR());
+			m_H_Amp[n] /= Z0*sqrt(m_Op->GetBackgroundMueR()/m_Op->GetBackgroundEpsR());
 		}
 
 		double coord[3];
@@ -267,7 +271,7 @@ bool Operator_Ext_TFSF::BuildExtension()
 						m_Op->GetYeeCoords(nP,pos,coord,false);
 						dist = fabs((coord[0]-origin[0])*m_PropDir[0])+fabs((coord[1]-origin[1])*m_PropDir[1])+fabs((coord[2]-origin[2])*m_PropDir[2]);
 						delay = dist*unit/m_PhVel/dT;
-						m_maxDelay = max((unsigned int)delay,m_maxDelay);
+						m_maxDelay = std::max((unsigned int)delay,m_maxDelay);
 						m_CurrDelay[n][0][1][ui_pos] = floor(delay);
 						m_CurrDelayDelta[n][0][1][ui_pos] = delay - floor(delay);
 						m_CurrAmp[n][0][1][ui_pos] = m_E_Amp[nP]*m_Op->GetEdgeLength(nP,pos);
@@ -275,7 +279,7 @@ bool Operator_Ext_TFSF::BuildExtension()
 						m_Op->GetYeeCoords(nPP,pos,coord,false);
 						dist = fabs((coord[0]-origin[0])*m_PropDir[0])+fabs((coord[1]-origin[1])*m_PropDir[1])+fabs((coord[2]-origin[2])*m_PropDir[2]);
 						delay = dist*unit/m_PhVel/dT;
-						m_maxDelay = max((unsigned int)delay,m_maxDelay);
+						m_maxDelay = std::max((unsigned int)delay,m_maxDelay);
 						m_CurrDelay[n][0][0][ui_pos] = floor(delay);
 						m_CurrDelayDelta[n][0][0][ui_pos] = delay - floor(delay);
 						m_CurrAmp[n][0][0][ui_pos] = m_E_Amp[nPP]*m_Op->GetEdgeLength(nPP,pos);
@@ -291,7 +295,7 @@ bool Operator_Ext_TFSF::BuildExtension()
 						m_Op->GetYeeCoords(nP,pos,coord,false);
 						dist = fabs((coord[0]-origin[0])*m_PropDir[0])+fabs((coord[1]-origin[1])*m_PropDir[1])+fabs((coord[2]-origin[2])*m_PropDir[2]);
 						delay = dist*unit/m_PhVel/dT;
-						m_maxDelay = max((unsigned int)delay,m_maxDelay);
+						m_maxDelay = std::max((unsigned int)delay,m_maxDelay);
 						m_CurrDelay[n][1][1][ui_pos] = floor(delay);
 						m_CurrDelayDelta[n][1][1][ui_pos] = delay - floor(delay);
 						m_CurrAmp[n][1][1][ui_pos] = m_E_Amp[nP]*m_Op->GetEdgeLength(nP,pos);
@@ -299,7 +303,7 @@ bool Operator_Ext_TFSF::BuildExtension()
 						m_Op->GetYeeCoords(nPP,pos,coord,false);
 						dist = fabs((coord[0]-origin[0])*m_PropDir[0])+fabs((coord[1]-origin[1])*m_PropDir[1])+fabs((coord[2]-origin[2])*m_PropDir[2]);
 						delay = dist*unit/m_PhVel/dT;
-						m_maxDelay = max((unsigned int)delay,m_maxDelay);
+						m_maxDelay = std::max((unsigned int)delay,m_maxDelay);
 						m_CurrDelay[n][1][0][ui_pos] = floor(delay);
 						m_CurrDelayDelta[n][1][0][ui_pos] = delay - floor(delay);
 						m_CurrAmp[n][1][0][ui_pos] = m_E_Amp[nPP]*m_Op->GetEdgeLength(nPP,pos);
@@ -335,7 +339,7 @@ bool Operator_Ext_TFSF::BuildExtension()
 						m_Op->GetYeeCoords(nP,pos,coord,true);
 						dist = fabs((coord[0]-origin[0])*m_PropDir[0])+fabs((coord[1]-origin[1])*m_PropDir[1])+fabs((coord[2]-origin[2])*m_PropDir[2]);
 						delay = dist*unit/m_PhVel/dT + 1.0;
-						m_maxDelay = max((unsigned int)delay,m_maxDelay);
+						m_maxDelay = std::max((unsigned int)delay,m_maxDelay);
 						m_VoltDelay[n][0][1][ui_pos] = floor(delay);
 						m_VoltDelayDelta[n][0][1][ui_pos] = delay - floor(delay);
 						m_VoltAmp[n][0][1][ui_pos] = m_H_Amp[nP]*m_Op->GetEdgeLength(nP,pos,true);
@@ -343,7 +347,7 @@ bool Operator_Ext_TFSF::BuildExtension()
 						m_Op->GetYeeCoords(nPP,pos,coord,true);
 						dist = fabs((coord[0]-origin[0])*m_PropDir[0])+fabs((coord[1]-origin[1])*m_PropDir[1])+fabs((coord[2]-origin[2])*m_PropDir[2]);
 						delay = dist*unit/m_PhVel/dT + 1.0;
-						m_maxDelay = max((unsigned int)delay,m_maxDelay);
+						m_maxDelay = std::max((unsigned int)delay,m_maxDelay);
 						m_VoltDelay[n][0][0][ui_pos] = floor(delay);
 						m_VoltDelayDelta[n][0][0][ui_pos] = delay - floor(delay);
 						m_VoltAmp[n][0][0][ui_pos] = m_H_Amp[nPP]*m_Op->GetEdgeLength(nPP,pos,true);
@@ -359,7 +363,7 @@ bool Operator_Ext_TFSF::BuildExtension()
 						m_Op->GetYeeCoords(nP,pos,coord,true);
 						dist = fabs((coord[0]-origin[0])*m_PropDir[0])+fabs((coord[1]-origin[1])*m_PropDir[1])+fabs((coord[2]-origin[2])*m_PropDir[2]);
 						delay = dist*unit/m_PhVel/dT + 1.0;
-						m_maxDelay = max((unsigned int)delay,m_maxDelay);
+						m_maxDelay = std::max((unsigned int)delay,m_maxDelay);
 						m_VoltDelay[n][1][1][ui_pos] = floor(delay);
 						m_VoltDelayDelta[n][1][1][ui_pos] = delay - floor(delay);
 						m_VoltAmp[n][1][1][ui_pos] = m_H_Amp[nP]*m_Op->GetEdgeLength(nP,pos,true);
@@ -367,7 +371,7 @@ bool Operator_Ext_TFSF::BuildExtension()
 						m_Op->GetYeeCoords(nPP,pos,coord,true);
 						dist = fabs((coord[0]-origin[0])*m_PropDir[0])+fabs((coord[1]-origin[1])*m_PropDir[1])+fabs((coord[2]-origin[2])*m_PropDir[2]);
 						delay = dist*unit/m_PhVel/dT + 1.0;
-						m_maxDelay = max((unsigned int)delay,m_maxDelay);
+						m_maxDelay = std::max((unsigned int)delay,m_maxDelay);
 						m_VoltDelay[n][1][0][ui_pos] = floor(delay);
 						m_VoltDelayDelta[n][1][0][ui_pos] = delay - floor(delay);
 						m_VoltAmp[n][1][0][ui_pos] = m_H_Amp[nPP]*m_Op->GetEdgeLength(nPP,pos,true);
@@ -414,12 +418,12 @@ Engine_Extension* Operator_Ext_TFSF::CreateEngineExtention(Engine *engine)
 	return new Engine_Ext_TFSF(this);
 }
 
-void Operator_Ext_TFSF::ShowStat(ostream &ostr) const
+void Operator_Ext_TFSF::ShowStat(std::ostream &ostr) const
 {
 	Operator_Extension::ShowStat(ostr);
 	cout << "Active directions\t: " << "(" << m_ActiveDir[0][0] << "/" << m_ActiveDir[0][1] << ", " << m_ActiveDir[1][0] << "/" << m_ActiveDir[1][1]  << ", " << m_ActiveDir[2][0] << "/" << m_ActiveDir[2][1]  << ")" << endl;
 	cout << "Propagation direction\t: " << "(" << m_PropDir[0] << ", " << m_PropDir[1] << ", " << m_PropDir[2] << ")" << endl;
-	cout << "Rel. propagation speed\t: " << m_PhVel/__C0__ << "*c0  @ " << m_Frequency << " Hz" << endl;
+	cout << "Rel. propagation speed\t: " << m_PhVel/C0 << "*c0  @ " << m_Frequency << " Hz" << endl;
 	cout << "E-field amplitude (V/m)\t: " << "(" << m_E_Amp[0] << ", " << m_E_Amp[1] << ", " << m_E_Amp[2] << ")" << endl;
 	cout << "H-field amplitude (A/m)\t: " << "(" << m_H_Amp[0] << ", " << m_H_Amp[1] << ", " << m_H_Amp[2] << ")" << endl;
 	cout << "Box Dimensions\t\t: " << m_numLines[0] << " x " << m_numLines[1] << " x " << m_numLines[2] << endl;

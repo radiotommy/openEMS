@@ -21,8 +21,6 @@
 #include <string>
 
 #include <iostream>
-#include <stdio.h>
-#include <stdlib.h>
 
 #include "tools/global.h"
 
@@ -59,7 +57,10 @@ public:
 	//! The MPI operator (if enabled) will check whether the extension is compatible with MPI. Default is false. Derive this method to override.
 	virtual bool IsMPISave() const {return false;}
 
-	virtual std::string GetExtensionName() const {return std::string("Abstract Operator Extension Base Class");}
+	virtual std::string GetExtensionName() const
+	{
+		return std::string("Abstract Operator Extension Base Class");
+	}
 
 	virtual void ShowStat(std::ostream &ostr) const;
 

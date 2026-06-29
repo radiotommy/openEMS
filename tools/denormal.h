@@ -1,3 +1,6 @@
+#ifndef DENORMAL_H
+#define DENORMAL_H
+
 #include <boost/predef.h>
 
 #if BOOST_ARCH_X86
@@ -29,3 +32,5 @@ inline void Denormal::Disable()
 	_mm_setcsr( newMXCSR );
 #endif
 }
+
+#endif // DENORMAL_H

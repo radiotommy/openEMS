@@ -79,8 +79,7 @@ CSX = DefineRectGrid( CSX, unit, mesh );
 Sim_Path = 'Sphere_RCS';
 Sim_CSX = 'Sphere_RCS.xml';
 
-[status, message, messageid] = rmdir( Sim_Path, 's' ); % clear previous directory
-[status, message, messageid] = mkdir( Sim_Path ); % create empty simulation folder
+CleanupSimPath(Sim_Path);
 
 %% write openEMS compatible xml-file
 WriteOpenEMS( [Sim_Path '/' Sim_CSX], FDTD, CSX );

@@ -19,25 +19,25 @@
 #define OPENEMS_H
 
 #include <sstream>
-#ifndef __GNUC__
+#if defined(_WIN32) && !defined(__GNUC__)
 #include <Winsock2.h> // for struct timeval
 #else
 #include <sys/time.h>
 #endif
-#include <time.h>
+#include <ctime>
 #include <vector>
 
-#include <boost/program_options.hpp>
 #include "openems_global.h"
 
-#define __OPENEMS_STAT_FILE__ "openEMS_stats.txt"
-#define __OPENEMS_RUN_STAT_FILE__ "openEMS_run_stats.txt"
+#define OPENEMS_STAT_FILE "openEMS_stats.txt"
+#define OPENEMS_RUN_STAT_FILE "openEMS_run_stats.txt"
 
 class Operator;
 class Engine;
 class Engine_Interface_FDTD;
 class ProcessingArray;
 class TiXmlElement;
+class TiXmlNode;
 class ContinuousStructure;
 class Engine_Interface_FDTD;
 class Excitation;
@@ -52,7 +52,6 @@ public:
 	openEMS();
 	virtual ~openEMS();
 
-	boost::program_options::options_description optionDesc();
 	virtual void showUsage();
 
 	bool ParseFDTDSetup(std::string file);
@@ -114,10 +113,15 @@ public:
 	Excitation* InitExcitation();
 
 	void SetCSX(ContinuousStructure* csx);
+	ContinuousStructure* GetCSX() const;
 
 	Engine_Interface_FDTD* NewEngineInterface(int multigridlevel = 0);
 
 	void SetVerboseLevel(int level);
+
+	bool Write2XML(TiXmlNode* rootNode);
+	bool Write2XML(std::string file);
+	bool ReadFromXML(std::string file);
 
 protected:
 	void collectCommandLineArguments();
@@ -172,6 +176,9 @@ protected:
 	int m_BC_type[6];
 	unsigned int m_PML_size[6];
 	double m_Mur_v_ph[6];
+
+	//! Setup local absorbing boundary conditions
+	void SetupAbsorbingSheets();
 
 	//! Check whether or not the FDTD-Operator has to store material data.
 	bool SetupMaterialStorages();

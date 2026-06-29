@@ -19,7 +19,7 @@ physical_constants;
 unit = 1e-6; % specify everything in um
 
 line_length     = 15000; % line length of strip line and microstrip line
-substrate_width = 6000;
+substrate_width = 10000;
 air_spacer      = 4000;  % air spacer above the substrate
 
 msl_width               = 500;
@@ -43,7 +43,7 @@ meas_shift = 5000;
 %% Setup FDTD Parameters & Excitation Function
 FDTD = InitFDTD();
 FDTD = SetGaussExcite( FDTD, f_max/2, f_max/2);
-BC   = {'PML_8' 'PML_8' 'PEC' 'PEC' 'PEC' 'MUR'};
+BC   = {'PML_8' 'PML_8' 'MUR' 'MUR' 'PEC' 'MUR'};
 FDTD = SetBoundaryCond( FDTD, BC );
 
 %% Setup CSXCAD Geometry & Mesh
@@ -65,8 +65,8 @@ stop  = [mesh.x(end), mesh.y(end), +strip_substrate_thickness+msl_substrate_thic
 CSX = AddBox( CSX, 'RO4350B', 0, start, stop );
 
 % Create a PEC called 'metal' and 'gnd'
-CSX = AddMetal( CSX, 'gnd' ); 
-CSX = AddMetal( CSX, 'metal' ); 
+CSX = AddMetal( CSX, 'gnd' );
+CSX = AddMetal( CSX, 'metal' );
 
 % Create strip line port (incl. metal strip line)
 start = [-line_length -strip_width/2  0];
@@ -84,30 +84,24 @@ stop  = [0, 0, strip_substrate_thickness+msl_substrate_thickness];
 CSX = AddCylinder(CSX, 'metal', 100, start, stop, connect_via_rad);
 
 % metal plane between strip line and MSL, including hole for transition
-p(1,1) = mesh.x(1);
-p(2,1) = mesh.y(1);
-p(1,2) = 0;
-p(2,2) = mesh.y(1);
-for a = linspace(-pi, pi, 21)
-  p(1,end+1) = connect_via_gap*sin(a);
-  p(2,end)   = connect_via_gap*cos(a);
-endfor
-p(1,end+1) = 0;
-p(2,end  ) = mesh.y(1);
-p(1,end+1) = mesh.x(end);
-p(2,end  ) = mesh.y(1);
-p(1,end+1) = mesh.x(end);
-p(2,end  ) = mesh.y(end);
-p(1,end+1) = mesh.x(1);
-p(2,end  ) = mesh.y(end);
-CSX = AddPolygon( CSX, 'gnd', 1, 'z', strip_substrate_thickness, p);
+x0 = mesh.x(1);  x1 = mesh.x(end);
+y0 = mesh.y(1);  y1 = mesh.y(end);
+
+theta_l = linspace(-pi, 0, 11);
+p_l = [x0, 0,                              connect_via_gap*sin(theta_l), 0,  x0 ;
+       y0, y0,                             connect_via_gap*cos(theta_l), y1, y1 ];
+CSX = AddPolygon( CSX, 'gnd', 1, 'z', strip_substrate_thickness, p_l);
+
+theta_r = linspace(0, pi, 11);
+p_r = [0,  x1, x1, 0,  connect_via_gap*sin(theta_r) ;
+       y0, y0, y1, y1, connect_via_gap*cos(theta_r)  ];
+CSX = AddPolygon( CSX, 'gnd', 1, 'z', strip_substrate_thickness, p_r);
 
 %% Write/Show/Run the openEMS compatible xml-file
 Sim_Path = 'tmp';
 Sim_CSX = 'strip2msl.xml';
 
-[status, message, messageid] = rmdir( Sim_Path, 's' ); % clear previous directory
-[status, message, messageid] = mkdir( Sim_Path ); % create empty simulation folder
+CleanupSimPath(Sim_Path);
 
 WriteOpenEMS( [Sim_Path '/' Sim_CSX], FDTD, CSX );
 CSXGeomPlot( [Sim_Path '/' Sim_CSX] );

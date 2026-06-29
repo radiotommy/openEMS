@@ -20,8 +20,6 @@
 #include <cstdlib>
 #include <cmath>
 #include <climits>
-#include <stdio.h>
-#include <stdlib.h>
 #include <iomanip>
 #include <sstream>
 #include <boost/algorithm/string.hpp>
@@ -184,7 +182,7 @@ int LinePlaneIntersection(const double *p0, const double *p1, const double *p2, 
 	return 0;
 }
 
-#ifndef __GNUC__
+#if defined(_WIN32) && !defined(__GNUC__)
 #include <chrono>
 #include <Winsock2.h> // for struct timeval
 
@@ -198,4 +196,4 @@ int gettimeofday(struct timeval* tp, struct timezone* tzp) {
   return 0;
 }
 
-#endif // _WIN32
+#endif // defined(_WIN32) && !defined(__GNUC__)

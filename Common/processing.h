@@ -24,19 +24,15 @@
 
 #include <complex>
 typedef std::complex<double> double_complex;
-#define _I double_complex(0.0,1.0)
+constexpr double_complex I_UNIT(0.0, 1.0);
 
 #include <iostream>
 #include <fstream>
 #include <cmath>
-#include <stdio.h>
-#include <stdlib.h>
-#include <iostream>
 #include <string>
 #include <vector>
 
-#define _USE_MATH_DEFINES
-
+#include "tools/constants.h"
 #include "Common/engine_interface_base.h"
 
 class Operator_Base;

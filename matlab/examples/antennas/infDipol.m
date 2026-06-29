@@ -63,8 +63,7 @@ if ~postprocessing_only
     FDTD = SetBoundaryCond( FDTD, BC );
 
     % Write openEMS compatible xml-file
-    [~,~,~] = rmdir(Sim_Path,'s');
-    [~,~,~] = mkdir(Sim_Path);
+    CleanupSimPath(Sim_Path);
     WriteOpenEMS([Sim_Path '/' Sim_CSX],FDTD,CSX);
 
     % take a view at the "structure"

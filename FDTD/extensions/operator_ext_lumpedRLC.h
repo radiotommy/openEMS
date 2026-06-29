@@ -1,5 +1,6 @@
 /*
 *	Copyright (C) 2023 Gadi Lahav (gadi@rfwithcare.com)
+*	Copyright (C) 2026 Thorsten Liebig (Thorsten.Liebig@gmx.de)
 *
 *	This program is free software: you can redistribute it and/or modify
 *	it under the terms of the GNU General Public License as published by
@@ -18,7 +19,7 @@
 #ifndef OPERATOR_EXT_LUMPEDRLC_H_
 #define OPERATOR_EXT_LUMPEDRLC_H_
 
-#include "vector"
+#include <vector>
 
 #include "FDTD/operator.h"
 #include "operator_extension.h"
@@ -46,9 +47,12 @@ public:
 	virtual bool IsCylindricalMultiGridSave(bool child) const {UNUSED(child); return true;}
 	virtual bool IsMPISave() const {return true;}
 
-	virtual string GetExtensionName() const {return string("Series\\Parallel Lumped RLC load");}
+	virtual std::string GetExtensionName() const
+	{
+		return std::string("Series/Parallel Lumped RLC load");
+	}
 
-	virtual void ShowStat(ostream &ostr) const;
+	virtual void ShowStat(std::ostream &ostr) const;
 
 	virtual bool IsLElumpedRLC(const CSPropLumpedElement* const p_prop);
 

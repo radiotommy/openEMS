@@ -63,18 +63,26 @@ public:
 
 		An empty function string will be ignored.
 	*/
-	virtual bool SetGradingFunction(string func);
+	virtual bool SetGradingFunction(std::string func);
 
 	virtual bool BuildExtension();
 
 	virtual Engine_Extension* CreateEngineExtention(Engine *engine);
 
-	virtual string GetExtensionName() const {return string("Uniaxial PML Extension");}
+	virtual std::string GetExtensionName() const
+	{
+		return std::string("Uniaxial PML Extension");
+	}
 
-	virtual void ShowStat(ostream &ostr) const;
+	virtual void ShowStat(std::ostream &ostr) const;
 
 	//! Create the UPML
-	static bool Create_UPML(Operator* op, const int ui_BC[6], const unsigned int ui_size[6], const string gradFunc);
+	static bool Create_UPML(
+		Operator* op,
+		const int ui_BC[6],
+		const unsigned int ui_size[6],
+		const std::string gradFunc
+	);
 
 protected:
 
@@ -88,19 +96,19 @@ protected:
 	unsigned int m_StartPos[3];
 	unsigned int m_numLines[3];
 
-	string m_GradFunc;
+	std::string m_GradFunc;
 	FunctionParser* m_GradingFunction;
 
 	void CalcGradingKappa(int ny, unsigned int pos[3], double Zm, double kappa_v[3], double kappa_i[3]);
 
 	void DeleteOp();
 
-	virtual FDTD_FLOAT& GetVV(int ny, unsigned int pos[3]) {return vv[ny][pos[0]][pos[1]][pos[2]];}
-	virtual FDTD_FLOAT& GetVVFO(int ny, unsigned int pos[3]) {return vvfo[ny][pos[0]][pos[1]][pos[2]];}
-	virtual FDTD_FLOAT& GetVVFN(int ny, unsigned int pos[3]) {return vvfn[ny][pos[0]][pos[1]][pos[2]];}
-	virtual FDTD_FLOAT& GetII(int ny, unsigned int pos[3]) {return ii[ny][pos[0]][pos[1]][pos[2]];}
-	virtual FDTD_FLOAT& GetIIFO(int ny, unsigned int pos[3]) {return iifo[ny][pos[0]][pos[1]][pos[2]];}
-	virtual FDTD_FLOAT& GetIIFN(int ny, unsigned int pos[3]) {return iifn[ny][pos[0]][pos[1]][pos[2]];}
+	virtual FDTD_FLOAT& GetVV  (int ny, unsigned int pos[3]) {return vv  (ny, pos[0], pos[1], pos[2]);}
+	virtual FDTD_FLOAT& GetVVFO(int ny, unsigned int pos[3]) {return vvfo(ny, pos[0], pos[1], pos[2]);}
+	virtual FDTD_FLOAT& GetVVFN(int ny, unsigned int pos[3]) {return vvfn(ny, pos[0], pos[1], pos[2]);}
+	virtual FDTD_FLOAT& GetII  (int ny, unsigned int pos[3]) {return ii  (ny, pos[0], pos[1], pos[2]);}
+	virtual FDTD_FLOAT& GetIIFO(int ny, unsigned int pos[3]) {return iifo(ny, pos[0], pos[1], pos[2]);}
+	virtual FDTD_FLOAT& GetIIFN(int ny, unsigned int pos[3]) {return iifn(ny, pos[0], pos[1], pos[2]);}
 
 	ArrayLib::ArrayNIJK<FDTD_FLOAT> vv;   //calc new voltage from old voltage
 	ArrayLib::ArrayNIJK<FDTD_FLOAT> vvfo; //calc new voltage from old voltage flux

@@ -15,8 +15,6 @@
 *	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -55,18 +53,18 @@ int main(int argc, const char* argv[])
 	if (argc<=1)
 	{
 		FDTD.showUsage();
-		exit(-1);
+		return -1;
 	}
 
 	g_settings.parseCommandLineArguments(argc, argv);
 
 	int EC = FDTD.ParseFDTDSetup(argv[1]);
-	if(!EC) {
-	  cerr << "openEMS - ParseFDTDSetup failed." << endl;
-	  exit(1);
+	if (!EC) {
+		cerr << "openEMS - ParseFDTDSetup failed." << endl;
+		return 1;
 	}
 	EC = FDTD.SetupFDTD();
-	if (EC) exit(EC);
+	if (EC) return EC;
 	FDTD.RunFDTD();
 
 #ifdef MPI_SUPPORT
@@ -74,5 +72,5 @@ int main(int argc, const char* argv[])
 	MPI::Finalize();
 #endif
 
-	exit(0);
+	return 0;
 }
