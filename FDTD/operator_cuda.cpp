@@ -7,7 +7,7 @@
 
 Operator_CUDA* Operator_CUDA::New(unsigned int cuda_device_number)
 {
-	std::cout << "Create FDTD operator (CUDA-" << cuda_device_number << ")" << std::endl;
+	cout << "Create FDTD operator (CUDA-" << cuda_device_number << ")" << endl;
 	Operator_CUDA* op = new Operator_CUDA();
 	op->setCUDAdevice(cuda_device_number);
 	op->Init();
@@ -17,7 +17,7 @@ Operator_CUDA* Operator_CUDA::New(unsigned int cuda_device_number)
 Engine* Operator_CUDA::CreateEngine()
 {
 	m_Engine = Engine_cuda::New(this, m_cuda_device_number);
-	std::cerr << "create cuda engin for cuda operator at " << m_Engine << std::endl;
+	fprintf(stderr, "create cuda engin for cuda operator at %p\n", m_Engine);
 	return m_Engine;
 }
 

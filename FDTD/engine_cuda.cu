@@ -182,7 +182,7 @@ __global__ void calcFastEnergyKernel(FDTD_FLOAT *volt, FDTD_FLOAT *curr, double 
     __syncthreads();
 
     if (tid == 0) {
-        p_sum[0] = vv[0] * FLT_EPSILON + ii[0] * MUE0;
+        p_sum[0] = vv[0] * __EPS0__ + ii[0] * __MUE0__;
     }
 }
 

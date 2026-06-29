@@ -109,7 +109,8 @@ Sim_Path = 'tmp';
 Sim_CSX = 'tmp.xml';
 
 if ~postprocessing_only
-    CleanupSimPath(Sim_Path);
+    [~,~,~] = rmdir(Sim_Path,'s');
+    [~,~,~] = mkdir(Sim_Path);
 end
 
 %% Write openEMS compatible xml-file %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

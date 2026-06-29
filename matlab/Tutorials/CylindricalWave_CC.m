@@ -70,7 +70,8 @@ CSX = AddBox(CSX,'Ef_ra',0 , start,stop);
 Sim_Path = 'tmp';
 Sim_CSX = '2D_CC_Wave.xml';
 
-CleanupSimPath(Sim_Path);
+[status, message, messageid] = rmdir( Sim_Path, 's' ); % clear previous directory
+[status, message, messageid] = mkdir( Sim_Path ); % create empty simulation folder
 
 WriteOpenEMS([Sim_Path '/' Sim_CSX],FDTD,CSX);
 RunOpenEMS(Sim_Path, Sim_CSX);

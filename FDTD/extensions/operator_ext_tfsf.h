@@ -43,12 +43,9 @@ public:
 	// FIXME, this extension is not save to use with MPI
 	virtual bool IsMPISave() const {return false;}
 
-	virtual std::string GetExtensionName() const
-	{
-		return std::string("Total-Field/Scattered-Field Extension");
-	}
+	virtual string GetExtensionName() const {return string("Total-Field/Scattered-Field Extension");}
 
-	virtual void ShowStat(std::ostream &ostr) const;
+	virtual void ShowStat(ostream &ostr) const;
 
 	virtual void Init();
 	virtual void Reset();

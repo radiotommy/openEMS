@@ -117,7 +117,8 @@ stop  = [mesh.r(end-9) mesh.a(end-9) mesh.z(end-9)];
 Sim_Path = ['tmp_' mfilename];
 Sim_CSX  = [mfilename '.xml'];
 
-CleanupSimPath(Sim_Path);
+[status, message, messageid] = rmdir( Sim_Path, 's' ); % clear previous directory
+[status, message, messageid] = mkdir( Sim_Path ); % create empty simulation folder
 
 % write openEMS compatible xml-file
 WriteOpenEMS( [Sim_Path '/' Sim_CSX], FDTD, CSX );

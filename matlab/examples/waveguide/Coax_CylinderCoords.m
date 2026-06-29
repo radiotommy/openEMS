@@ -44,7 +44,8 @@ Sim_Path = 'tmp';
 Sim_CSX = 'coax.xml';
 
 if (postprocessing_only==0)
-    CleanupSimPath(Sim_Path);
+    [status, message, messageid] = rmdir(Sim_Path,'s');
+    [status, message, messageid] = mkdir(Sim_Path);
 end
 
 %% setup FDTD parameter & excitation function %%%%%%%%%%%%%%%%%%%%%%%%%%%%%

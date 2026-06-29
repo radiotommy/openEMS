@@ -115,7 +115,8 @@ Sim_Path = 'tmp_Helical_Ant';
 Sim_CSX = 'Helix_Ant.xml';
 
 if (post_proc_only==0)
-    CleanupSimPath(Sim_Path);
+    [status, message, messageid] = rmdir( Sim_Path, 's' ); % clear previous directory
+    [status, message, messageid] = mkdir( Sim_Path );      % create empty simulation folder
 
     %% write openEMS compatible xml-file
     WriteOpenEMS( [Sim_Path '/' Sim_CSX], FDTD, CSX );

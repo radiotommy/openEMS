@@ -229,7 +229,8 @@ CSX = DefineRectGrid(CSX, unit, mesh);
 Sim_Path = ['tmp_' mfilename];
 
 if (postproc_only==0)
-    CleanupSimPath(Sim_Path);
+    [status, message, messageid] = rmdir(Sim_Path,'s'); %delete old results
+    [status, message, messageid] = mkdir(Sim_Path);     %create folder
 
     WriteOpenEMS([Sim_Path '/BirdCage.xml'],FDTD,CSX);
 end

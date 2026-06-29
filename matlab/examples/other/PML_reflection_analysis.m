@@ -121,7 +121,8 @@ Sim_Path = 'tmp';
 Sim_CSX = 'PML_reflection_analysis.xml';
 
 if ~postprocessing_only
-    CleanupSimPath(Sim_Path);
+    [~,~,~] = rmdir(Sim_Path,'s');
+    [~,~,~] = mkdir(Sim_Path);
 end
 
 %% Write openEMS compatible xml-file %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

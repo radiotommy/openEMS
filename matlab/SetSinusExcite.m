@@ -3,9 +3,7 @@ function FDTD = SetSinusExcite(FDTD,f0)
 %
 % see also SetGaussExcite SetCustomExcite
 %
-% e.g
-%
-%     FDTD = SetSinusExcite(FDTD,1e9);
+% e.g FDTD = SetSinusExcite(FDTD,1e9);
 %
 % openEMS matlab interface
 % -----------------------

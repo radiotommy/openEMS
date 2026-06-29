@@ -70,7 +70,8 @@ CSX = AddBox(CSX,'gold',500,start,stop);
 Sim_Path = 'tmp';
 Sim_CSX = 'msl.xml';
 
-CleanupSimPath(Sim_Path);
+[status, message, messageid] = rmdir( Sim_Path, 's' ); % clear previous directory
+[status, message, messageid] = mkdir( Sim_Path ); % create empty simulation folder
 
 WriteOpenEMS( [Sim_Path '/' Sim_CSX], FDTD, CSX );
 CSXGeomPlot( [Sim_Path '/' Sim_CSX] );

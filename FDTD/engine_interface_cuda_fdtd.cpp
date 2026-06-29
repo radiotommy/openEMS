@@ -23,7 +23,7 @@ Engine_Interface_CUDA_FDTD::Engine_Interface_CUDA_FDTD(Operator_CUDA* op) : Engi
 	m_Eng_CUDA = dynamic_cast<Engine_cuda*>(m_Op_CUDA->GetEngine());
 	if (m_Eng_CUDA==NULL)
 	{
-		std::cerr << "Engine_Interface_CUDA_FDTD::Engine_Interface_CUDA_FDTD: Error: CUDA-Engine is not set! Exit!" << std::endl;
+		cerr << "Engine_Interface_SSE_FDTD::Engine_Interface_SSE_FDTD: Error: SSE-Engine is not set! Exit!" << endl;
 		exit(1);
 	}
 }

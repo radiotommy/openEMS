@@ -62,7 +62,8 @@ CSX = AddBox(CSX,'Et',0 , start,stop);
 Sim_Path = 'tmp';
 Sim_CSX = 'circ_wg.xml';
 
-CleanupSimPath(Sim_Path);
+[status, message, messageid] = rmdir(Sim_Path,'s');
+[status, message, messageid] = mkdir(Sim_Path);
 
 WriteOpenEMS([Sim_Path '/' Sim_CSX],FDTD,CSX);
 

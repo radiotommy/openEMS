@@ -1,27 +1,25 @@
 function [field mesh] = ReadHDF5Dump(file, varargin)
 %[field mesh] = ReadHDF5Dump(file, varargin)
 %
-% Read a hdf5 field dump, including an interpolation and frequency domain
-% transformation.
+%   Read a hdf5 field dump, including an interpolation and frequency domain
+%   transformation.
 %
-% For more information about the output, refer to the help of
-% ReadHDF5Mesh and ReadHDF5FieldData
+%   For more information about the output, refer to the help of
+%   ReadHDF5Mesh and ReadHDF5FieldData
 %
-% possible arguments:
+%   possible arguments:
+%       'Range'             see GetField_Range
+%       'Interpolation'     see GetField_Interpolation
+%       'SubSampling'       see GetField_SubSampling
+%       'Frequency'         see GetField_TD2FD
+%       'CloseAlpha': 0 (default) / 1
 %
-% - 'Range'             see GetField_Range
-% - 'Interpolation'     see GetField_Interpolation
-% - 'SubSampling'       see GetField_SubSampling
-% - 'Frequency'         see GetField_TD2FD
-% - 'CloseAlpha': 0 (default) / 1
-%
-% example:
-%
-%     [field mesh] = ReadHDF5Dump('Et.h5');
-%     %or
-%     [field mesh] = ReadHDF5Dump('Et.h5','Range',{[0 100],[-20 20],[50 90]});
-%     %or
-%     [field mesh] = ReadHDF5Dump('Et.h5','Interpolation',[21 1 101],'Frequency',300e6);
+%   example:
+%   [field mesh] = ReadHDF5Dump('Et.h5');
+%   or
+%   [field mesh] = ReadHDF5Dump('Et.h5','Range',{[0 100],[-20 20],[50 90]});
+%   or
+%   [field mesh] = ReadHDF5Dump('Et.h5','Interpolation',[21 1 101],'Frequency',300e6);
 %
 % openEMS matlab interface
 % -----------------------

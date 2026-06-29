@@ -83,7 +83,8 @@ portstop  = [ +CRLH.LL/2,   CRLH.LW/2, 0];
 Sim_Path = 'tmp';
 Sim_CSX = 'CRLH.xml';
 
-CleanupSimPath(Sim_Path);
+[status, message, messageid] = rmdir( Sim_Path, 's' ); % clear previous directory
+[status, message, messageid] = mkdir( Sim_Path ); % create empty simulation folder
 
 WriteOpenEMS( [Sim_Path '/' Sim_CSX], FDTD, CSX );
 CSXGeomPlot( [Sim_Path '/' Sim_CSX] );

@@ -103,7 +103,8 @@ Sim_Path = 'tmp_Patch_Ant';
 Sim_CSX = 'patch_ant.xml';
 
 % create an empty working directory
-CleanupSimPath(Sim_Path);
+[status, message, messageid] = rmdir( Sim_Path, 's' ); % clear previous directory
+[status, message, messageid] = mkdir( Sim_Path ); % create empty simulation folder
 
 % write openEMS compatible xml-file
 WriteOpenEMS( [Sim_Path '/' Sim_CSX], FDTD, CSX );

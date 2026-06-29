@@ -37,7 +37,8 @@ openEMS_opts = '';
 Sim_Path = 'tmp';
 Sim_CSX = 'lumped.xml';
 
-CleanupSimPath(Sim_Path);
+[status, message, messageid] = rmdir(Sim_Path,'s');
+[status,message,messageid] = mkdir(Sim_Path);
 
 %% setup FDTD parameter & excitation function %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 FDTD = InitFDTD(30000,1e-6);

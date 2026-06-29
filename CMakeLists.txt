@@ -1,4 +1,3 @@
-set(CMAKE_CXX_STANDARD 11)
 
 # define build type
 IF( DEFINED CMAKE_BUILD_TYPE )
@@ -7,17 +6,13 @@ ELSE()
   SET( CMAKE_BUILD_TYPE Release CACHE STRING "Set to either \"Release\" or \"Debug\"" )
 ENDIF()
 
-# In CMake 4, 3.10 is deprecated and 3.5 has been removed.
-# use 3.1...3.10 so all of these versions are acceptable as min. version.
-# https://cmake.org/cmake/help/latest/command/cmake_minimum_required.html
-cmake_minimum_required(VERSION 3.1...3.10)
-
 PROJECT(openEMS CXX C)
+cmake_minimum_required(VERSION 3.18)
 
 # default
 set(LIB_VERSION_MAJOR 0)
-set(LIB_VERSION_MINOR 37)
-set(LIB_VERSION_PATCH 0)
+set(LIB_VERSION_MINOR 0)
+set(LIB_VERSION_PATCH 36)
 set(LIB_VERSION_STRING ${LIB_VERSION_MAJOR}.${LIB_VERSION_MINOR}.${LIB_VERSION_PATCH})
 
 set(VERSION "v${LIB_VERSION_STRING}")
@@ -28,12 +23,18 @@ ENDIF()
 
 #ADD_DEFINITIONS( -D__SSE2__ )
 
+
+set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -g" )
+set (CMAKE_SHARED_LINKER_FLAGS_DEBUG "${CMAKE_SHARED_LINKER_FLAGS} -g" )
+
+set(VERSION "v0.0.36")
+
 # add git revision
 IF(EXISTS ${PROJECT_SOURCE_DIR}/.git )
   FIND_PACKAGE(Git)
   # Get the latest abbreviated commit hash of the working branch
   execute_process(
-    COMMAND ${GIT_EXECUTABLE} describe --tags --always
+    COMMAND ${GIT_EXECUTABLE} describe --tags
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
     OUTPUT_VARIABLE GITREV
   )
@@ -138,24 +139,20 @@ INCLUDE_DIRECTORIES (${HDF5_INCLUDE_DIRS})
 # boost
 find_package(Boost 1.46 COMPONENTS
   thread
+  system
   date_time
   serialization
   chrono
   program_options
   REQUIRED
 )
-if (${Boost_MINOR_VERSION} LESS 69)
-    # Since Boost 1.69, "system" is header only, so a check
-    # is needed only in Boost 1.68 and earlier.
-    find_package(Boost 1.46 COMPONENTS system thread date_time serialization chrono program_options REQUIRED)
-endif()
 message(STATUS "Boost_INCLUDE_DIRS: ${Boost_INCLUDE_DIRS}")
 message(STATUS "Boost_LIBRARIES: ${Boost_LIBRARIES}")
 INCLUDE_DIRECTORIES (${Boost_INCLUDE_DIRS})
 
 # vtk
 find_package(VTK COMPONENTS vtkCommonCore NO_MODULE QUIET)
-if ("${VTK_VERSION}" VERSION_GREATER "9")
+if (${VTK_VERSION} VERSION_GREATER "9")
     find_package(VTK REQUIRED COMPONENTS IOXML IOGeometry IOLegacy IOPLY NO_MODULE REQUIRED)
 else()
     find_package(VTK REQUIRED COMPONENTS vtkIOXML vtkIOGeometry vtkIOLegacy vtkIOPLY NO_MODULE REQUIRED)
@@ -228,7 +225,7 @@ if (WITH_CUDA)
 endif()
 
 if (WIN32)
-    INSTALL(TARGETS openEMS RUNTIME DESTINATION bin ARCHIVE DESTINATION lib${LIB_SUFFIX})
+    INSTALL(TARGETS openEMS DESTINATION bin)
 else()
     INSTALL(TARGETS openEMS DESTINATION lib${LIB_SUFFIX})
 endif()

@@ -46,7 +46,10 @@ Sim_CSX = 'MTM_PW_Drude.xml';
 
 if (postproc_only==0)
     
-    CleanupSimPath(Sim_Path);
+    if (exist(Sim_Path,'dir'))
+        rmdir(Sim_Path,'s');
+    end
+    mkdir(Sim_Path);
 
     %% setup FDTD parameter & excitation function %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     FDTD = InitFDTD(N_TS,endCriteria,'OverSampling',10);

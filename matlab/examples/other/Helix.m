@@ -28,7 +28,8 @@ openEMS_opts = [openEMS_opts ' --disable-dumps --engine=fastest'];
 Sim_Path = 'tmp';
 Sim_CSX = 'helix.xml';
 
-CleanupSimPath(Sim_Path);
+[status, message, messageid] = rmdir(Sim_Path,'s');
+[status,message,messageid] = mkdir(Sim_Path);
 
 %% setup FDTD parameter & excitation function %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 FDTD = InitFDTD(30000,1e-6);

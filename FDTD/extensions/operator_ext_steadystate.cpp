@@ -18,9 +18,6 @@
 #include "operator_ext_steadystate.h"
 #include "engine_ext_steadystate.h"
 
-using std::cout;
-using std::endl;
-
 Operator_Ext_SteadyState::Operator_Ext_SteadyState(Operator* op, double period): Operator_Extension(op)
 {
 	this->Reset();
@@ -97,7 +94,7 @@ Engine_Extension* Operator_Ext_SteadyState::CreateEngineExtention(Engine *engine
 	return m_Eng_Ext;
 }
 
-void Operator_Ext_SteadyState::ShowStat(std::ostream &ostr)  const
+void Operator_Ext_SteadyState::ShowStat(ostream &ostr)  const
 {
 	Operator_Extension::ShowStat(ostr);
 	cout << "Period time (s): "  << m_T_period << "\t Period TS: " << m_TS_period << endl;

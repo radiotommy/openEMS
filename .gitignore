@@ -9,7 +9,6 @@ Makefile*
 *~
 *.so*
 *.a
-*.oct
 *.pro.user*
 *.user
 *.orig
@@ -26,17 +25,9 @@ localConfig.cmake
 #python
 *.pyc
 *.pyo
-python/openEMS/__fallback_version__.py
 python/**/*.cpp
 python/openEMS.egg-info/*
 python/dist
 !python/doc
 python/doc/_build
 python/doc/Tutorials/__*
-
-# AI assistant configuration files (each contributor may maintain their own)
-CLAUDE.md
-.claude*
-.cursor*
-.windsurf*
-.copilot*
