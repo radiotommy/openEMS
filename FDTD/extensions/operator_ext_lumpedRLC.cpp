@@ -176,24 +176,39 @@ bool Operator_Ext_LumpedRLC::BuildExtension()
 		dir = cs_RLC_props->GetDirection();
 		lumpedType = cs_RLC_props->GetLEtype();
 
-		//		if (lumpedType == LEtype::INVALID
-		if (lumpedType == CSPropLumpedElement::INVALID)
+				// NaN means "not present" — silent and valid.  Negative values are clamped to
+		// zero with a warning.  Explicit zero on a component that is non-physical in
+		// the chosen topology also gets a dedicated warning.
+		if (C < 0.0)
 		{
-			cerr << "Operator_Ext_LumpedRLC::BuildExtension(): Warning: RLCtype is invalid! considering as parallel. "
-					<< " ID: " << cs_RLC_props->GetID() << " @ Property: " << cs_RLC_props->GetName() << endl;
-			lumpedType = CSPropLumpedElement::PARALLEL;
+			cerr 	<< "Operator_Ext_LumpedRLC::BuildExtension(): Warning: Value of C is smaller than zero, automatically set to 0. ID:"
+					<< cs_RLC_props->GetID() << " @ Property: " << cs_RLC_props->GetName() << endl;
+			C = 0.0;
 		}
+		else if (!std::isnan(C) && C == 0.0 && lumpedType == CSPropLumpedElement::SERIES)
+			cerr	<< "Operator_Ext_LumpedRLC::BuildExtension(): Warning: C = 0 in a series circuit is non-physical; treating as absent (series RL only). ID: "
+					<< cs_RLC_props->GetID() << " @ Property: " << cs_RLC_props->GetName() << endl;
 
-		// Extract R, L and C from property class
-		C = cs_RLC_props->GetCapacity();
-		if (C < 0)
-			C = NAN;
-		R = cs_RLC_props->GetResistance();
-		if (R < 0)
-			R = NAN;
-		L = cs_RLC_props->GetInductance();
-		if (L < 0)
-			L = NAN;
+		if (R < 0.0)
+		{
+			cerr 	<< "Operator_Ext_LumpedRLC::BuildExtension(): Warning: Value of R is smaller than zero, automatically set to 0. ID:"
+					<< cs_RLC_props->GetID() << " @ Property: " << cs_RLC_props->GetName() << endl;
+			R = 0.0;
+		}
+		else if (!std::isnan(R) && R == 0.0 && lumpedType == CSPropLumpedElement::PARALLEL)
+			cerr	<< "Operator_Ext_LumpedRLC::BuildExtension(): Warning: R = 0 in a parallel circuit would be a short circuit; use AddMetal() for an intentional short. Treating as absent (open). ID: "
+					<< cs_RLC_props->GetID() << " @ Property: " << cs_RLC_props->GetName() << endl;
+
+		if (L < 0.0)
+		{
+			cerr 	<< "Operator_Ext_LumpedRLC::BuildExtension(): Warning: Value of L is smaller than zero, automatically set to zero. ID: "
+					<< cs_RLC_props->GetID() << " @ Property: " << cs_RLC_props->GetName() << endl;
+			L = 0.0;
+		}
+		else if (!std::isnan(L) && L == 0.0 && lumpedType == CSPropLumpedElement::PARALLEL)
+			cerr	<< "Operator_Ext_LumpedRLC::BuildExtension(): Warning: L = 0 in a parallel circuit would be a short circuit; treating as absent. ID: "
+					<< cs_RLC_props->GetID() << " @ Property: " << cs_RLC_props->GetName() << endl;
+
 
 		// Check that this is a lumped RLC
 		if (!(this->IsLElumpedRLC(cs_RLC_props)))

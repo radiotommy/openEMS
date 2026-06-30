@@ -1,3 +1,4 @@
+set(CMAKE_CXX_STANDARD 11)
 
 # define build type
 IF( DEFINED CMAKE_BUILD_TYPE )
@@ -6,8 +7,9 @@ ELSE()
   SET( CMAKE_BUILD_TYPE Release CACHE STRING "Set to either \"Release\" or \"Debug\"" )
 ENDIF()
 
+cmake_minimum_required(VERSION 3.1...3.10)
+
 PROJECT(openEMS CXX C)
-cmake_minimum_required(VERSION 3.18)
 
 # default
 set(LIB_VERSION_MAJOR 0)
@@ -139,7 +141,6 @@ INCLUDE_DIRECTORIES (${HDF5_INCLUDE_DIRS})
 # boost
 find_package(Boost 1.46 COMPONENTS
   thread
-  system
   date_time
   serialization
   chrono

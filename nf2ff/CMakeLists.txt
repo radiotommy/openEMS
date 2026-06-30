@@ -7,7 +7,7 @@ ELSE()
 ENDIF()
 
 PROJECT(nf2ff CXX)
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.1...3.10)
 
 set(LIB_VERSION_MAJOR 0)
 set(LIB_VERSION_MINOR 1)
