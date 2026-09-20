@@ -124,7 +124,6 @@ void  Engine_Ext_Excitation::SetEngine(Engine* eng)
         ep->length = length;
 
 
-        printf("load volt signal: %d,%d,%d, %f\n", ep->x, ep->y, ep->z, ep->amp);
 
         ep++;
     }
