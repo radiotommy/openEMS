@@ -17,7 +17,6 @@ Operator_CUDA* Operator_CUDA::New(unsigned int cuda_device_number)
 Engine* Operator_CUDA::CreateEngine()
 {
 	m_Engine = Engine_cuda::New(this, m_cuda_device_number);
-	fprintf(stderr, "create cuda engin for cuda operator at %p\n", m_Engine);
 	return m_Engine;
 }
 

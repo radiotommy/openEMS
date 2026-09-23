@@ -20,9 +20,6 @@ void Engine_Ext_United_UPML::SetEngine(Engine* eng)
 
     int upml_blocks = m_Op_UPML_List->size();
 
-    printf("load united upml blocks %d\n", upml_blocks);
-    fflush(stdout);
-
     checkCuda(cudaMalloc(&m_d_blks, sizeof(upml_block_t) * upml_blocks));
 
     m_num_of_cells_in_block = new int[upml_blocks];
