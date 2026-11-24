@@ -201,7 +201,6 @@ Engine_cuda::Engine_cuda(const Operator_CUDA* op)  : Engine(op)
     numTS = 0;
     Op = op;
 
-    cout << "Engine CUDA construct type=" << m_type << endl;
 }
 
 void Engine_cuda::setCUDAdevice(unsigned int cuda_device_number)	   
@@ -269,8 +268,6 @@ void Engine_cuda::Init() {
 
 	numTS = 0;
     int num_cells = numLines[0] * numLines[1] * numLines[2];
-
-    printf("simulation dim: %d, %d, %d\n", m_dim.x, m_dim.y, m_dim.z); fflush(stdout);
 
     // Allocate GPU memory
 	volt_array = new CudaHelper::Array<FDTD_FLOAT>(num_cells * 3);
@@ -345,13 +342,9 @@ void Engine_cuda::AddCurr(unsigned int n, const unsigned int pos[3], FDTD_FLOAT 
 
 double Engine_cuda::CalcFastEnergy()
 {
-    if (m_volt_updated || m_curr_updated) {
-        printf("volt & curr updated: %d,%d\n", m_volt_updated, m_curr_updated);
-    }
     calcFastEnergyKernel<<<1, THREADS>>>(volt_array->device_data(), curr_array->device_data(), m_energy_sum->device_data(), m_dim);
 
     CudaHelper::check_cuda();
-    //checkCuda(cudaDeviceSynchronize());
 
     m_energy_sum->load_to_host();
     return m_energy_sum->host_data()[0];
@@ -369,11 +362,9 @@ bool Engine_cuda::IterateTS(unsigned int iterTS) {
     m_curr_updated_by_host = 1;
 
     if (m_volt_updated) {
-        printf("load volt to cuda\n"); fflush(stdout);
         volt_array->load_to_device_async();
     }
     if (m_curr_updated) {
-        printf("load curr to cuda\n"); fflush(stdout);
         curr_array->load_to_device_async();
     }
     m_host_data_locked = true;
@@ -401,6 +392,10 @@ bool Engine_cuda::IterateTS(unsigned int iterTS) {
         }
     }
 
+    // Processing starts as soon as IterateTS() returns and may read the host
+    // field buffers.  The final device-to-host copies are asynchronous, so
+    // complete all work queued on the default stream before exposing them.
+    checkCuda(cudaStreamSynchronize(0));
 
     m_host_data_locked = false;
     m_volt_updated = 0;

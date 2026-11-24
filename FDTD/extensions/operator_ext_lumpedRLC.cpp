@@ -176,7 +176,12 @@ bool Operator_Ext_LumpedRLC::BuildExtension()
 		dir = cs_RLC_props->GetDirection();
 		lumpedType = cs_RLC_props->GetLEtype();
 
-				// NaN means "not present" — silent and valid.  Negative values are clamped to
+		// Extract R, L and C from property class
+		C = cs_RLC_props->GetCapacity();
+		R = cs_RLC_props->GetResistance();
+		L = cs_RLC_props->GetInductance();
+
+		// NaN means "not present" — silent and valid.  Negative values are clamped to
 		// zero with a warning.  Explicit zero on a component that is non-physical in
 		// the chosen topology also gets a dedicated warning.
 		if (C < 0.0)

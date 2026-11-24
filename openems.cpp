@@ -264,18 +264,18 @@ openEMS::optionDesc()
 #endif
 				}
 			),
-		    "Choose engine type \n\n"
-			"  fastest: \tfastest available engine (default)\n"
-			"  basic: \tbasic FDTD engine\n"
-			"  sse: \tengine using SSE vector extensions\n"
-			"  sse-compressed: \tengine using compressed "
-			"operator + sse vector extensions\n"
-			"  multithreaded: \tengine using compressed "
-			"  cuda: \tengine using cuda"
+		    "Choose engine type:\n"
+			"  fastest: fastest available engine (default)\n"
+			"  basic: basic FDTD engine\n"
+			"  sse: engine using SSE vector extensions\n"
+			"  sse-compressed: engine using compressed operator + SSE vector extensions\n"
 #ifdef MPI_SUPPORT
-			"operator + sse vector extensions + MPI + multithreading\n"
+			"  multithreaded: engine using compressed operator + SSE vector extensions + MPI + multithreading\n"
 #else
-			"operator + sse vector extensions + multithreading\n"
+			"  multithreaded: engine using compressed operator + SSE vector extensions + multithreading\n"
+#endif
+#if WITH_CUDA
+			"  cuda: CUDA FDTD engine\n"
 #endif
 		)
 		(
@@ -1303,7 +1303,6 @@ void openEMS::RunFDTD()
 	PA->PreProcess();
 	int step=PA->Process();
 	if ((step<0) || (step>(int)NrTS)) step=NrTS;
-	printf("start run in %d steps\n", step);
 
 	while ((FDTD_Eng->GetNumberOfTimesteps()<NrTS) && (change>endCrit) && !CheckAbortCond())
 	{

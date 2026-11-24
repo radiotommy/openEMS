@@ -112,7 +112,6 @@ void  Engine_Ext_Excitation::SetEngine(Engine* eng)
 
     exitation_point *ep_all = new exitation_point[n_volt + n_curr];
 
-    printf(">>>>>>>>>>>>>>> load excitation signal to device memory: %d,%d\n", n_volt, n_curr);
     exitation_point *ep = ep_all;
     for (int i = 0; i < n_volt; i++) {
         ep->delay = m_Op_Exc->Volt_delay[i];
@@ -124,7 +123,6 @@ void  Engine_Ext_Excitation::SetEngine(Engine* eng)
         ep->length = length;
 
 
-        printf("load volt signal: %d,%d,%d, %f\n", ep->x, ep->y, ep->z, ep->amp);
 
         ep++;
     }
@@ -137,7 +135,6 @@ void  Engine_Ext_Excitation::SetEngine(Engine* eng)
         ep->z = m_Op_Exc->Curr_index[2][i];
         ep->length = length;
 
-        printf("load curr signal: %d,%d,%d, %f\n", ep->x, ep->y, ep->z, ep->amp);
 
         ep++;
     }
